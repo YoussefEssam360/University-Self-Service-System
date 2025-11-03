@@ -1,0 +1,6 @@
+@University_Self_Service_System___Backend_HostAddress = http://localhost:5051
+
+GET {{University_Self_Service_System___Backend_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
