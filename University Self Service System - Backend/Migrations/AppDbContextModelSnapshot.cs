@@ -47,7 +47,7 @@ namespace University_Self_Service_System___Backend.Migrations
 
                     b.HasIndex("ProfessorId");
 
-                    b.ToTable("Courses");
+                    b.ToTable("Courses", (string)null);
                 });
 
             modelBuilder.Entity("University_Self_Service_System___Backend.Entities.Enrollment", b =>
@@ -73,7 +73,7 @@ namespace University_Self_Service_System___Backend.Migrations
 
                     b.HasIndex("StudentId");
 
-                    b.ToTable("Enrollments");
+                    b.ToTable("Enrollments", (string)null);
                 });
 
             modelBuilder.Entity("University_Self_Service_System___Backend.Entities.Professor", b =>
@@ -98,7 +98,7 @@ namespace University_Self_Service_System___Backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Professors");
+                    b.ToTable("Professors", (string)null);
                 });
 
             modelBuilder.Entity("University_Self_Service_System___Backend.Entities.Student", b =>
@@ -119,7 +119,7 @@ namespace University_Self_Service_System___Backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Students");
+                    b.ToTable("Students", (string)null);
                 });
 
             modelBuilder.Entity("University_Self_Service_System___Backend.Entities.User", b =>
@@ -148,7 +148,7 @@ namespace University_Self_Service_System___Backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("University_Self_Service_System___Backend.Entities.Course", b =>

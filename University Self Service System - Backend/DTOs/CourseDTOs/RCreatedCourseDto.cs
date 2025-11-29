@@ -4,6 +4,8 @@
     {
         public int Id { get; set; } // The crucial new field!
 
+        public bool ProfessorIdNotFound { get; set; } = false;
 
+        public bool CourseCodeIsDuplicate { get; set; } = false;
     }
 }
