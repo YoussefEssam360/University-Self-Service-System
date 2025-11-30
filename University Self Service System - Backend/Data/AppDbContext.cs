@@ -18,16 +18,30 @@ namespace University_Self_Service_System___Backend.Data
         public DbSet<User> Users { get; set; }
 
         // --- Configuration for Data Constraints ---
+        // In your AppDbContext.cs file:
+
+        // In your AppDbContext.cs file (Updated Fluent API):
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // 1. Enforce Unique Course Code
-            
-            modelBuilder.Entity<Course>()
-                .HasIndex(c => c.Code)
-                .IsUnique();
+            // ... other configurations ...
 
-            
+            // 1. Configure Course <-> Enrollment Relationship
+            modelBuilder.Entity<Enrollment>()
+                .HasOne(e => e.Course)
+                .WithMany(c => c.Enrollments) // Explicitly link to the Enrollments collection in Course.cs
+                .HasForeignKey(e => e.CourseId)
+                .OnDelete(DeleteBehavior.Cascade); // Cascade Delete for Course
+
+            // 2. Configure Student <-> Enrollment Relationship
+            modelBuilder.Entity<Enrollment>()
+                .HasOne(e => e.Student)
+                .WithMany(s => s.Enrollments) // Explicitly link to the Enrollments collection in Student.cs
+                .HasForeignKey(e => e.StudentId)
+                .OnDelete(DeleteBehavior.Cascade); // Cascade Delete for Student
+
             base.OnModelCreating(modelBuilder);
         }
     }
 }
+

@@ -11,16 +11,9 @@ using University_Self_Service_System___Backend.Entities;
 
 namespace University_Self_Service_System___Backend.Services.CourseFactory
 {
-    public class CreateCourseService : ICourseService
+    public partial class courseServices 
     {
-        private readonly AppDbContext _context;
-        private readonly IMapper _mapper;
 
-        public CreateCourseService(AppDbContext dbContext, IMapper mapper)
-        {
-            _context = dbContext;
-            _mapper = mapper;
-        }
 
         public async Task<RCreatedCourseDto> CreateCourse(CreateCourseDto dto)
         {

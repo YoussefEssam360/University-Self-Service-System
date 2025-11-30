@@ -20,9 +20,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // -----------------------------
 // Register AutoMapper
-builder.Services.AddAutoMapper(typeof(CourseMappingProfile).Assembly); // <-- Add this line
+builder.Services.AddAutoMapper(typeof(CourseMappingProfile).Assembly); // for create course Mappings
 // -----------------------------
-builder.Services.AddScoped<ICourseService, CreateCourseService>();
+builder.Services.AddScoped<ICourseService, courseServices>();
 
 
 var app = builder.Build();

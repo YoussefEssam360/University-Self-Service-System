@@ -24,6 +24,12 @@ namespace University_Self_Service_System___Backend.Controllers
             return Ok(result);
         }
 
+        [HttpDelete("{delete}")]
+        public async Task<IActionResult> deleteCourse([FromBody] deleteCourseDto dto)
+        {
+            var result = await _courseService.deleteCourse(dto);
+            return Ok(result);
+        }
 
 
 

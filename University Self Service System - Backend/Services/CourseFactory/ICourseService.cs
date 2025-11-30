@@ -6,6 +6,7 @@ namespace University_Self_Service_System___Backend.Services.CourseFactory
     {
 
         Task<RCreatedCourseDto> CreateCourse(CreateCourseDto dto);
-        
+        Task<RdeleteCourseDto> deleteCourse(deleteCourseDto courseCode);
+
     }
 }
