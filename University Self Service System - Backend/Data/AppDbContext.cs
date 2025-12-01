@@ -17,6 +17,7 @@ namespace University_Self_Service_System___Backend.Data
         public DbSet<Enrollment> Enrollments { get; set; }
         public DbSet<User> Users { get; set; }
 
+
         // --- Configuration for Data Constraints ---
         // In your AppDbContext.cs file:
 

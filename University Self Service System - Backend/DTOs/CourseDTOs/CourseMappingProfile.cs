@@ -24,6 +24,18 @@ namespace University_Self_Service_System___Backend.Mappings
             //Entity --> RDto for output
             CreateMap<Course, RdeleteCourseDto>();
             // -------------------------------------------------------------
+
+
+            // ------------------ Edit Course Mappings ------------------
+            //Dto --> Entity for input
+            CreateMap<updateCourseDto, Course>();
+            //Entity --> RDto for output
+            CreateMap<Course, RupdateCourse>();
+            // -------------------------------------------------------------
+
+            // ------------------ View Course Mappings ------------------
+            CreateMap<Course, RviewCourseDto>();
+
         }
     }
 }

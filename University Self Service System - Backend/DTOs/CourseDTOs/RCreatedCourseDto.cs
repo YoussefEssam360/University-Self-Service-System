@@ -2,7 +2,7 @@
 {
     public class RCreatedCourseDto
     {
-        public int Id { get; set; } // The crucial new field!
+        public int Id { get; set; } 
 
         public bool ProfessorIdNotFound { get; set; } = false;
 
