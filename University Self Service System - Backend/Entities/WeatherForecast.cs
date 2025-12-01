@@ -1,4 +1,4 @@
-namespace University_Self_Service_System___Backend
+namespace University_Self_Service_System___Backend.Entities
 {
     public class WeatherForecast
     {

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Identity.Web.Resource;
+using University_Self_Service_System___Backend.Entities;
 
 namespace University_Self_Service_System___Backend.Controllers
 {
