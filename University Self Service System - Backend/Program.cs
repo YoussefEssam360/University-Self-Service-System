@@ -1,8 +1,10 @@
-using AutoMapper;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using University_Self_Service_System___Backend.Data;
-using University_Self_Service_System___Backend.DTOs.CourseDTOs;
 using University_Self_Service_System___Backend.Mappings;
+using University_Self_Service_System___Backend.Services.AuthServices;
 using University_Self_Service_System___Backend.Services.CourseFactory;
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,17 +19,33 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// -----------------------------
+
 // Register AutoMapper
 builder.Services.AddAutoMapper(typeof(CourseMappingProfile).Assembly); // for create course Mappings
+
 // -----------------------------
 builder.Services.AddScoped<ICourseService, courseServices>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
+// JWT Authentication
+var jwtSettings = builder.Configuration.GetSection("Jwt");
+var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]);
+
+builder.Services.AddAuthentication(options =>
+{options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+ options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;})
+    .AddJwtBearer(options =>{options.TokenValidationParameters = new TokenValidationParameters{
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtSettings["Issuer"],
+        ValidAudience = jwtSettings["Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(key)
+    };
+});
 
 var app = builder.Build();
-
-
-
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -37,6 +55,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// IMPORTANT: auth before authorization
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
