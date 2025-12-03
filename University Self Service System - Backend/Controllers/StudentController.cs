@@ -7,8 +7,7 @@ using University_Self_Service_System___Backend.Services.StudentServices;
 
 namespace University_Self_Service_System___Backend.Controllers
 {
-    // API endpoints for Student functionality.
-    // Place this file under the Controllers folder.
+    
     [ApiController]
     [Route("api/[controller]")]
     public class StudentController : ControllerBase
@@ -22,7 +21,7 @@ namespace University_Self_Service_System___Backend.Controllers
             _logger = logger;
         }
 
-        // GET api/student/{studentId}/profile
+        
         [HttpGet("{studentId:int}/profile")]
         [ProducesResponseType(typeof(OperationResult<StudentProfileDto>), 200)]
         [ProducesResponseType(404)]
@@ -33,7 +32,7 @@ namespace University_Self_Service_System___Backend.Controllers
             return Ok(res);
         }
 
-        // PUT api/student/{studentId}/profile
+        
         [HttpPut("{studentId:int}/profile")]
         [ProducesResponseType(typeof(OperationResult<StudentProfileDto>), 200)]
         [ProducesResponseType(400)]
@@ -44,7 +43,7 @@ namespace University_Self_Service_System___Backend.Controllers
             return Ok(res);
         }
 
-        // GET api/student/{studentId}/enrollments
+        
         [HttpGet("{studentId:int}/enrollments")]
         [ProducesResponseType(typeof(OperationResult<System.Collections.Generic.IEnumerable<EnrolledCourseDto>>), 200)]
         public async Task<IActionResult> GetEnrolledCourses(int studentId, CancellationToken cancellationToken = default)
@@ -53,7 +52,7 @@ namespace University_Self_Service_System___Backend.Controllers
             return Ok(res);
         }
 
-        // POST api/student/{studentId}/register
+        
         [HttpPost("{studentId:int}/register")]
         [ProducesResponseType(typeof(OperationResult<EnrolledCourseDto>), 201)]
         [ProducesResponseType(400)]
@@ -61,11 +60,11 @@ namespace University_Self_Service_System___Backend.Controllers
         {
             var res = await _studentService.RegisterForCourseAsync(studentId, dto, cancellationToken);
             if (!res.Success) return BadRequest(res);
-            // Created with a simple Location-like URI to the student's enrollment resource.
+            
             return Created($"/api/student/{studentId}/enrollments/{res.Data?.EnrollmentId}", res);
         }
 
-        // DELETE api/student/{studentId}/enrollments (body: cancel request)
+       
         [HttpDelete("{studentId:int}/enrollments")]
         [ProducesResponseType(204)]
         [ProducesResponseType(400)]
