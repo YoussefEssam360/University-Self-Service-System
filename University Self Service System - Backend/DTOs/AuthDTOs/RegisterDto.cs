@@ -10,14 +10,14 @@ namespace University_Self_Service_System___Backend.DTOs.AuthDTOs
         public required string Username { get; set; }
 
         [Required]
-        [EmailAddress]                      // checks email format
+        [EmailAddress]                     
         public required string Email { get; set; }
 
         [Required]
-        [MinLength(6)]                      // basic password rule
+        [MinLength(6)]                      
         public required string Password { get; set; }
 
         [Required]
-        public required string Role { get; set; }    // will further validate in service
+        public required string Role { get; set; }
     }
 }
