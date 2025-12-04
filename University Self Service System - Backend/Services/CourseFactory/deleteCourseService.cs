@@ -5,21 +5,21 @@ using University_Self_Service_System___Backend.DTOs.CourseDTOs;
 
 namespace University_Self_Service_System___Backend.Services.CourseFactory
 {
-    public partial class courseServices 
+    public partial class courseServices
     {
-
-
-
-
-
-        public async Task<RdeleteCourseDto> deleteCourse(deleteCourseDto courseDto)
+        // Match the ICourseService signature: accept the course code string
+        public async Task<RdeleteCourseDto> deleteCourse(string code)
         {
-            // Extract the string Code from the DTO first.
-            string courseCode = courseDto.Code;
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                return new RdeleteCourseDto { CourseNotFound = true };
+            }
 
-            // FIX: Use Where and FirstOrDefaultAsync to search by the string Code.
+            var codeNormalized = code.Trim().ToLowerInvariant();
+
+            // Case-insensitive lookup to avoid misses due to casing/collation
             var course = await _context.Courses
-                .FirstOrDefaultAsync(c => c.Code == courseCode); // Search by the string Code
+                .FirstOrDefaultAsync(c => c.Code.ToLower() == codeNormalized);
 
             if (course == null)
             {
@@ -31,12 +31,5 @@ namespace University_Self_Service_System___Backend.Services.CourseFactory
 
             return new RdeleteCourseDto { done = true };
         }
-
-
-
-
-
-
-
     }
 }
