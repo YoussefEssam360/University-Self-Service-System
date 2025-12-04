@@ -13,8 +13,6 @@ namespace University_Self_Service_System___Backend.Services.CourseFactory
 {
     public partial class courseServices 
     {
-
-
         public async Task<RCreatedCourseDto> CreateCourse(CreateCourseDto dto)
         {
             bool professorWasNotFound = false;
