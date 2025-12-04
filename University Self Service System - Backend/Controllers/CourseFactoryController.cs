@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using University_Self_Service_System___Backend.DTOs.CourseDTOs;
-using University_Self_Service_System___Backend.Services.CourseFactory;
 using University_Self_Service_System___Backend.Services.CourseFactory;
 
 namespace University_Self_Service_System___Backend.Controllers
@@ -18,6 +18,7 @@ namespace University_Self_Service_System___Backend.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateCourse([FromBody] CreateCourseDto dto)
         {
             var result = await _courseService.CreateCourse(dto);
@@ -25,16 +26,30 @@ namespace University_Self_Service_System___Backend.Controllers
         }
 
         [HttpDelete]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> deleteCourse([FromBody] deleteCourseDto dto)
         {
-            var result = await _courseService.deleteCourse(dto);
+            if (dto == null || string.IsNullOrWhiteSpace(dto.Code))
+            {
+                return BadRequest();
+            }
+
+            var result = await _courseService.deleteCourse(dto.Code);
             return Ok(result);
         }
 
         [HttpPut]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> updateCourse([FromBody] updateCourseDto dto)
         {
             var result = await _courseService.updateCourse(dto);
+
+            if (!result.done)
+            {
+                // Course not found or invalid input
+                return NotFound(result);
+            }
+
             return Ok(result);
         }
 
@@ -44,7 +59,5 @@ namespace University_Self_Service_System___Backend.Controllers
             var result = await _courseService.viewCourses();
             return Ok(result);
         }
-
-
     }
 }

@@ -1,13 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.14.36623.8 d17.14
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.11222.15
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "University Self Service System - Backend", "University Self Service System - Backend\University Self Service System - Backend.csproj", "{407CDF57-D13E-467B-9D02-A26A6C4DDA07}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "University Self Service System - Frontend", "University Self Service System - Frontend\University Self Service System - Frontend\University Self Service System - Frontend.csproj", "{A349FBAF-0DDD-4AD4-AFF9-0C26B3BE9C19}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "University Self Service System - Frontend.Client", "University Self Service System - Frontend\University Self Service System - Frontend.Client\University Self Service System - Frontend.Client.csproj", "{09F2A3D8-30FE-424E-A380-FA1EB769633A}"
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "university-self-service-system-frontend", "university-self-service-system-frontend\university-self-service-system-frontend.esproj", "{B5A0D176-05A5-50F0-AB11-9FDB06C103BD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,14 +17,12 @@ Global
 		{407CDF57-D13E-467B-9D02-A26A6C4DDA07}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{407CDF57-D13E-467B-9D02-A26A6C4DDA07}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{407CDF57-D13E-467B-9D02-A26A6C4DDA07}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A349FBAF-0DDD-4AD4-AFF9-0C26B3BE9C19}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A349FBAF-0DDD-4AD4-AFF9-0C26B3BE9C19}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A349FBAF-0DDD-4AD4-AFF9-0C26B3BE9C19}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A349FBAF-0DDD-4AD4-AFF9-0C26B3BE9C19}.Release|Any CPU.Build.0 = Release|Any CPU
-		{09F2A3D8-30FE-424E-A380-FA1EB769633A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{09F2A3D8-30FE-424E-A380-FA1EB769633A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{09F2A3D8-30FE-424E-A380-FA1EB769633A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{09F2A3D8-30FE-424E-A380-FA1EB769633A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B5A0D176-05A5-50F0-AB11-9FDB06C103BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B5A0D176-05A5-50F0-AB11-9FDB06C103BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B5A0D176-05A5-50F0-AB11-9FDB06C103BD}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{B5A0D176-05A5-50F0-AB11-9FDB06C103BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B5A0D176-05A5-50F0-AB11-9FDB06C103BD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B5A0D176-05A5-50F0-AB11-9FDB06C103BD}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
