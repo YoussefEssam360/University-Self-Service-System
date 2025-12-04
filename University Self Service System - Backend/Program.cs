@@ -6,6 +6,7 @@ using University_Self_Service_System___Backend.Data;
 using University_Self_Service_System___Backend.Mappings;
 using University_Self_Service_System___Backend.Services.AuthServices;
 using University_Self_Service_System___Backend.Services.CourseFactory;
+using University_Self_Service_System___Backend.Services.ProfManagement;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -24,8 +25,13 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddAutoMapper(typeof(CourseMappingProfile).Assembly); // for create course Mappings
 
 // -----------------------------
+
+
 builder.Services.AddScoped<ICourseService, courseServices>();
+
 builder.Services.AddScoped<IAuthService, AuthService>();
+
+builder.Services.AddScoped<IProfManagementService, profManagementService>();
 
 // JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("Jwt");
