@@ -6,13 +6,13 @@ using University_Self_Service_System___Backend.Data;
 using University_Self_Service_System___Backend.Mappings;
 using University_Self_Service_System___Backend.Services.AuthServices;
 using University_Self_Service_System___Backend.Services.CourseFactory;
-
+using University_Self_Service_System___Backend.Services.ProfManagement;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
 
-// CORS – DEV ONLY: allow any origin, any header, any method
+// CORS â€“ DEV ONLY: allow any origin, any header, any method
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -37,8 +37,13 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddAutoMapper(typeof(CourseMappingProfile).Assembly); // for create course Mappings
 
 // -----------------------------
+
+
 builder.Services.AddScoped<ICourseService, courseServices>();
+
 builder.Services.AddScoped<IAuthService, AuthService>();
+
+builder.Services.AddScoped<IProfManagementService, profManagementService>();
 
 // JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("Jwt");
