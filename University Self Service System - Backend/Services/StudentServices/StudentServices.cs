@@ -11,8 +11,6 @@ using University_Self_Service_System___Backend.Entities;
 
 namespace University_Self_Service_System___Backend.Services.StudentServices
 {
-    // Service implementing student operations.
-    // It uses AppDbContext to access Course, Student and Enrollment entities.
     public class StudentService : IStudentService
     {
         private readonly AppDbContext _db;
@@ -24,12 +22,11 @@ namespace University_Self_Service_System___Backend.Services.StudentServices
             _logger = logger;
         }
 
-        // Return student's profile mapped to StudentProfileDto
         public async Task<OperationResult<StudentProfileDto>> GetProfileAsync(int studentId, CancellationToken cancellationToken = default)
         {
             var result = new OperationResult<StudentProfileDto>();
             var student = await _db.Students
-                .Include(s => s.User) // if Student has navigation to User
+                .Include(s => s.User)
                 .FirstOrDefaultAsync(s => s.Id == studentId, cancellationToken);
 
             if (student == null)
@@ -44,7 +41,7 @@ namespace University_Self_Service_System___Backend.Services.StudentServices
                 Id = student.Id,
                 FullName = student.FullName ?? student.User?.FullName,
                 Email = student.User?.Email,
-                StudentNumber = student.StudentNumber,
+                PhoneNumber = student.PhoneNumber,
                 DateOfBirth = student.DateOfBirth,
                 Major = student.Major
             };
@@ -52,7 +49,6 @@ namespace University_Self_Service_System___Backend.Services.StudentServices
             return result;
         }
 
-        // Update a student's profile with provided fields (partial updates supported)
         public async Task<OperationResult<StudentProfileDto>> UpdateProfileAsync(int studentId, StudentUpdateDto updateDto, CancellationToken cancellationToken = default)
         {
             var result = new OperationResult<StudentProfileDto>();
@@ -68,7 +64,6 @@ namespace University_Self_Service_System___Backend.Services.StudentServices
                 return result;
             }
 
-            // Apply allowed updates. Only overwrite when a value is provided.
             if (!string.IsNullOrWhiteSpace(updateDto.FullName))
             {
                 student.FullName = updateDto.FullName;
@@ -81,8 +76,8 @@ namespace University_Self_Service_System___Backend.Services.StudentServices
                 student.User.Email = updateDto.Email;
             }
 
-            if (!string.IsNullOrWhiteSpace(updateDto.StudentNumber))
-                student.StudentNumber = updateDto.StudentNumber;
+            if (!string.IsNullOrWhiteSpace(updateDto.PhoneNumber))
+                student.PhoneNumber = updateDto.PhoneNumber;
 
             if (updateDto.DateOfBirth.HasValue)
                 student.DateOfBirth = updateDto.DateOfBirth;
@@ -98,7 +93,7 @@ namespace University_Self_Service_System___Backend.Services.StudentServices
                 Id = student.Id,
                 FullName = student.FullName ?? student.User?.FullName,
                 Email = student.User?.Email,
-                StudentNumber = student.StudentNumber,
+                PhoneNumber = student.PhoneNumber,
                 DateOfBirth = student.DateOfBirth,
                 Major = student.Major
             };
@@ -106,7 +101,6 @@ namespace University_Self_Service_System___Backend.Services.StudentServices
             return result;
         }
 
-        // Get all courses the student is currently enrolled in
         public async Task<OperationResult<IEnumerable<EnrolledCourseDto>>> GetEnrolledCoursesAsync(int studentId, CancellationToken cancellationToken = default)
         {
             var result = new OperationResult<IEnumerable<EnrolledCourseDto>>();
@@ -132,14 +126,12 @@ namespace University_Self_Service_System___Backend.Services.StudentServices
             return result;
         }
 
-        // Register a student to a course with basic validation (e.g., capacity)
         public async Task<OperationResult<EnrolledCourseDto>> RegisterForCourseAsync(int studentId, RegisterCourseDto registerDto, CancellationToken cancellationToken = default)
         {
             var result = new OperationResult<EnrolledCourseDto>();
 
-            // Load course and current enrollment count
             var course = await _db.Courses
-                .Include(c => c.Enrollments) // optional navigation
+                .Include(c => c.Enrollments)
                 .FirstOrDefaultAsync(c => c.Id == registerDto.CourseId, cancellationToken);
 
             if (course == null)
@@ -149,8 +141,6 @@ namespace University_Self_Service_System___Backend.Services.StudentServices
                 return result;
             }
 
-            // Basic capacity check:
-            // NOTE: Ensure Course entity has a Capacity property (int). If not, add it to your model.
             var enrolledCount = await _db.Enrollments.CountAsync(e => e.CourseId == course.Id, cancellationToken);
             if (course.Capacity > 0 && enrolledCount >= course.Capacity)
             {
@@ -159,7 +149,6 @@ namespace University_Self_Service_System___Backend.Services.StudentServices
                 return result;
             }
 
-            // Prevent duplicate registration
             var already = await _db.Enrollments.AnyAsync(e => e.CourseId == course.Id && e.StudentId == studentId, cancellationToken);
             if (already)
             {
@@ -168,7 +157,6 @@ namespace University_Self_Service_System___Backend.Services.StudentServices
                 return result;
             }
 
-            // Ensure student exists
             var student = await _db.Students.FindAsync(new object[] { studentId }, cancellationToken);
             if (student == null)
             {
@@ -177,7 +165,6 @@ namespace University_Self_Service_System___Backend.Services.StudentServices
                 return result;
             }
 
-            // Create enrollment
             var enrollment = new Enrollment
             {
                 CourseId = course.Id,
@@ -188,7 +175,6 @@ namespace University_Self_Service_System___Backend.Services.StudentServices
             _db.Enrollments.Add(enrollment);
             await _db.SaveChangesAsync(cancellationToken);
 
-            // Map to response DTO
             result.Data = new EnrolledCourseDto
             {
                 EnrollmentId = enrollment.Id,
@@ -204,7 +190,6 @@ namespace University_Self_Service_System___Backend.Services.StudentServices
             return result;
         }
 
-        
         public async Task<OperationResult<bool>> CancelRegistrationAsync(int studentId, CancelRegistrationDto cancelDto, CancellationToken cancellationToken = default)
         {
             var result = new OperationResult<bool>();
