@@ -1,4 +1,4 @@
-using System
+using System;
 
 namespace University_Self_Service_System___Backend.DTOs.StudentDTOs
 {
