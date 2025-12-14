@@ -1,4 +1,6 @@
-﻿namespace University_Self_Service_System___Backend.Entities
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace University_Self_Service_System___Backend.Entities
 {
     // Entities/Student.cs
     public class Student
@@ -17,6 +19,7 @@
 
         public string Email { get; set; } = null!;
 
+        [MaxLength(50)]
         // New: Phone number for student (required)
         public string PhoneNumber { get; set; } = null!;
 
