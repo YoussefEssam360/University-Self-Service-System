@@ -23,56 +23,81 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
 
         public async Task<AuthResultDto> RegisterAsync(RegisterDto dto)
         {
-            // normalize + validate role
             var allowedRoles = new[] { "Admin", "Student", "Professor" };
-
-            var normalizedRole = (dto.Role ?? "").Trim();
-
-            // make first letter capital, rest lower (admin → Admin)
-            normalizedRole = char.ToUpper(normalizedRole[0]) + normalizedRole[1..].ToLower();
+            var roleInput = (dto.Role ?? string.Empty).Trim();
+            var normalizedRole = roleInput.Length > 0
+                ? char.ToUpper(roleInput[0]) + roleInput[1..].ToLower()
+                : string.Empty;
 
             if (!allowedRoles.Contains(normalizedRole))
             {
-                return new AuthResultDto
-                {
-                    Success = false,
-                    Errors = new[] { "Role must be one of: Admin, Student, Professor." }
-                };
+                return new AuthResultDto { Success = false, Errors = new[] { "Role must be one of: Admin, Student, Professor." } };
             }
 
-            // check if username or email already exists
-            bool userExists = await _context.Users
-                .AnyAsync(u => u.Username == dto.Username || u.Email == dto.Email);
+            // Role-based validation
+            if (normalizedRole == "Student")
+            {
+                var missing = new List<string>();
+                if (string.IsNullOrWhiteSpace(dto.PhoneNumber)) missing.Add("PhoneNumber");
+                if (string.IsNullOrWhiteSpace(dto.Major)) missing.Add("Major");
+                if (!dto.DateOfBirth.HasValue) missing.Add("DateOfBirth");
+                if (missing.Count > 0)
+                {
+                    return new AuthResultDto { Success = false, Errors = new[] { $"Missing required student fields: {string.Join(", ", missing)}." } };
+                }
+            }
+            else if (normalizedRole == "Professor")
+            {
+                if (string.IsNullOrWhiteSpace(dto.Department) || string.IsNullOrWhiteSpace(dto.PhoneNumber))
+                {
+                    return new AuthResultDto { Success = false, Errors = new[] { "Department and PhoneNumber are required for Professor." } };
+                }
+            }
 
+            // Existing uniqueness checks
+            bool userExists = await _context.Users.AnyAsync(u => u.Username == dto.Username || u.Email == dto.Email);
             if (userExists)
             {
-                return new AuthResultDto
+                return new AuthResultDto { Success = false, Errors = new[] { "Username or email already in use." } };
+            }
+
+            // Phone uniqueness across profiles (Student + Professor)
+            var phone = (dto.PhoneNumber ?? string.Empty).Trim();
+            if (!string.IsNullOrEmpty(phone))
+            {
+                bool phoneExists =
+                    await _context.Students.AnyAsync(s => s.PhoneNumber == phone) ||
+                    await _context.Professors.AnyAsync(p => p.PhoneNumber == phone);
+
+                if (phoneExists)
                 {
-                    Success = false,
-                    Errors = new[] { "Username or email already in use." }
-                };
+                    return new AuthResultDto { Success = false, Errors = new[] { "Phone number already in use." } };
+                }
             }
 
             var user = new User
             {
                 Username = dto.Username.Trim(),
+                FullName = dto.FullName.Trim(),
                 Email = dto.Email.Trim(),
                 Role = normalizedRole,
                 PasswordHash = HashPassword(dto.Password)
             };
 
-            // Save the user first so we have the generated Id
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            // Create profile row for Student or Professor (Admin accounts are created manually)
             if (normalizedRole == "Student")
             {
                 var student = new Student
                 {
                     UserId = user.Id,
                     Name = user.Username,
-                    Email = user.Email
+                    FullName = user.FullName,
+                    Email = user.Email,
+                    PhoneNumber = phone,
+                    Major = dto.Major!.Trim(),
+                    DateOfBirth = dto.DateOfBirth
                 };
 
                 _context.Students.Add(student);
@@ -84,8 +109,10 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
                 {
                     UserId = user.Id,
                     Name = user.Username,
+                    FullName = user.FullName,
                     Email = user.Email,
-                    Department = string.IsNullOrWhiteSpace(dto.Department) ? "Unknown" : dto.Department.Trim()
+                    PhoneNumber = phone,
+                    Department = dto.Department!.Trim()
                 };
 
                 _context.Professors.Add(professor);
@@ -93,14 +120,7 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
             }
 
             var token = GenerateJwtToken(user);
-
-            return new AuthResultDto
-            {
-                Success = true,
-                Token = token,
-                Username = user.Username,
-                Role = user.Role
-            };
+            return new AuthResultDto { Success = true, Token = token, Username = user.Username, Role = user.Role };
         }
 
         public async Task<AuthResultDto> LoginAsync(LoginDto dto)

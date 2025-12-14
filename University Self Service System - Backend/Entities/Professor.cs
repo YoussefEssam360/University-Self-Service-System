@@ -9,7 +9,12 @@
         public User User { get; set; }
 
         public string Name { get; set; }
-        public string Email { get; set; }
+        public string FullName { get; set; } = null!;
+        public string Email { get; set; }      
+
+        // New: Phone number for professor (required)
+        public string PhoneNumber { get; set; } = null!;
+
         public string Department { get; set; }
 
         // navigation: one professor → many courses

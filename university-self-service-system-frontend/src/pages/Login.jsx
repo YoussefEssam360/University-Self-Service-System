@@ -15,11 +15,15 @@ export default function Login() {
     const [showSignup, setShowSignup] = useState(false);
     const [signUpForm, setSignUpForm] = useState({
         username: "",
+        fullName: "",
         email: "",
         password: "",
         confirmPassword: "",
-        role: "Student", // default
-        department: ""
+        role: "", // no default selection
+        phoneNumber: "",
+        department: "",
+        major: "",
+        dateOfBirth: "" // ISO string from <input type="date">
     });
     const [signupError, setSignupError] = useState("");
     const [signingUp, setSigningUp] = useState(false);
@@ -35,7 +39,6 @@ export default function Login() {
             return;
         }
 
-        // Route on successful login (AuthContext.login stores role)
         const role = localStorage.getItem("role") ?? "";
         if (role === "Admin") navigate("/admin");
         else if (role === "Student") navigate("/student");
@@ -43,7 +46,6 @@ export default function Login() {
         else navigate("/");
     };
 
-    // Signup handlers
     const openSignup = () => {
         setSignupError("");
         setShowSignup(true);
@@ -53,11 +55,15 @@ export default function Login() {
         setShowSignup(false);
         setSignUpForm({
             username: "",
+            fullName: "",
             email: "",
             password: "",
             confirmPassword: "",
-            role: "Student",
-            department: ""
+            role: "", // no default selection
+            phoneNumber: "",
+            department: "",
+            major: "",
+            dateOfBirth: "" // ISO string from <input type="date">
         });
         setSigningUp(false);
     };
@@ -71,7 +77,7 @@ export default function Login() {
         e.preventDefault();
         setSignupError("");
 
-        if (!signUpForm.username || !signUpForm.email || !signUpForm.password) {
+        if (!signUpForm.username || !signUpForm.fullName || !signUpForm.email || !signUpForm.password) {
             setSignupError("Please fill all required fields.");
             return;
         }
@@ -79,31 +85,41 @@ export default function Login() {
             setSignupError("Passwords do not match.");
             return;
         }
-
-        // require department when signing up as Professor
-        if (signUpForm.role === "Professor" && !signUpForm.department?.trim()) {
-            setSignupError("Please select a department for professor accounts.");
+        if (!signUpForm.role) {
+            setSignupError("Please select an account type (Student or Professor).");
             return;
+        }
+        if (signUpForm.role === "Student") {
+            if (!signUpForm.phoneNumber?.trim() || !signUpForm.major?.trim() || !signUpForm.dateOfBirth) {
+                setSignupError("Phone Number, Major, and Date of Birth are required for students.");
+                return;
+            }
+        }
+        if (signUpForm.role === "Professor") {
+            if (!signUpForm.department?.trim() || !signUpForm.phoneNumber?.trim()) {
+                setSignupError("Department and Phone Number are required for professors.");
+                return;
+            }
         }
 
         setSigningUp(true);
 
         try {
-            // Register endpoint - adjust path if your backend differs
             const payload = {
                 username: signUpForm.username,
+                fullName: signUpForm.fullName,
                 email: signUpForm.email,
                 password: signUpForm.password,
-                role: signUpForm.role, // "Student" or "Professor"
+                role: signUpForm.role,
+                phoneNumber: signUpForm.phoneNumber,
+                major: signUpForm.role === "Student" ? signUpForm.major : null,
+                dateOfBirth: signUpForm.role === "Student" ? signUpForm.dateOfBirth : null,
                 department: signUpForm.role === "Professor" ? signUpForm.department : null
             };
 
             await axiosClient.post("/Auth/register", payload);
-
-            // After successful registration, auto-login:
             await login(signUpForm.username, signUpForm.password);
 
-            // Route by role
             if (signUpForm.role === "Student") navigate("/student");
             else if (signUpForm.role === "Professor") navigate("/professor");
             else navigate("/");
@@ -121,7 +137,6 @@ export default function Login() {
         }
     };
 
-    // Inline styles (equal spacing and consistent box-sizing)
     const pageStyle = {
         position: "fixed",
         inset: 0,
@@ -292,6 +307,18 @@ export default function Login() {
                                 </div>
 
                                 <div style={fieldWrapStyle}>
+                                    <label style={labelStyle}>Full Name</label>
+                                    <input
+                                        name="fullName"
+                                        value={signUpForm.fullName}
+                                        onChange={handleSignupChange}
+                                        style={inputStyle}
+                                        placeholder="e.g. John Smith"
+                                        required
+                                    />
+                                </div>
+
+                                <div style={fieldWrapStyle}>
                                     <label style={labelStyle}>Email</label>
                                     <input
                                         name="email"
@@ -353,35 +380,96 @@ export default function Login() {
                                     </label>
                                 </div>
 
-                                {/* Department dropdown shown only for Professor */}
                                 {signUpForm.role === "Professor" && (
-                                    <div style={fieldWrapStyle}>
-                                        <label style={labelStyle}>Department</label>
-                                        <select
-                                            name="department"
-                                            value={signUpForm.department}
-                                            onChange={handleSignupChange}
-                                            style={{ ...inputStyle, appearance: "none" }}
-                                            required
-                                        >
-                                            <option value="">Select department</option>
-                                            <option value="Computer Science">Computer Science</option>
-                                            <option value="Engineering">Engineering</option>
-                                            <option value="Business">Business</option>
-                                        </select>
-                                    </div>
+                                    <>
+                                        <div style={fieldWrapStyle}>
+                                            <label style={labelStyle}>Phone Number</label>
+                                            <input
+                                                name="phoneNumber"
+                                                value={signUpForm.phoneNumber}
+                                                onChange={handleSignupChange}
+                                                style={inputStyle}
+                                                placeholder="e.g. +1 234 567 8901"
+                                                required
+                                            />
+                                        </div>
+
+                                        <div style={fieldWrapStyle}>
+                                            <label style={labelStyle}>Department</label>
+                                            <select
+                                                name="department"
+                                                value={signUpForm.department}
+                                                onChange={handleSignupChange}
+                                                style={{ ...inputStyle, appearance: "none" }}
+                                                required
+                                            >
+                                                <option value="">Select department</option>
+                                                <option value="Computer Science">Computer Science</option>
+                                                <option value="Engineering">Engineering</option>
+                                                <option value="Business">Business</option>
+                                            </select>
+                                        </div>
+                                    </>
                                 )}
 
-                                <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                                    <button type="submit" disabled={signingUp} style={{ ...neutralButton, flex: 1 }}>
-                                        {signingUp ? "Signing up..." : "Create account"}
-                                    </button>
+                                {signUpForm.role === "Student" && (
+                                    <>
+                                        <div style={fieldWrapStyle}>
+                                            <label style={labelStyle}>Phone Number</label>
+                                            <input
+                                                name="phoneNumber"
+                                                value={signUpForm.phoneNumber}
+                                                onChange={handleSignupChange}
+                                                style={inputStyle}
+                                                placeholder="e.g. +1 234 567 8901"
+                                                required
+                                            />
+                                        </div>
 
-                                    <button type="button" onClick={closeSignup} style={{ ...primaryButton, flex: 1 }}>
-                                        Cancel
+                                        <div style={fieldWrapStyle}>
+                                            <label style={labelStyle}>Major</label>
+                                            <select
+                                                name="major"
+                                                value={signUpForm.major}
+                                                onChange={handleSignupChange}
+                                                style={{ ...inputStyle, appearance: "none" }}
+                                                required
+                                            >
+                                                <option value="">Select major</option>
+                                                <option value="Computer Science">Computer Science</option>
+                                                <option value="Engineering">Engineering</option>
+                                                <option value="Business">Business</option>
+                                            </select>
+                                        </div>
+
+                                        <div style={fieldWrapStyle}>
+                                            <label style={labelStyle}>Date of Birth</label>
+                                            <input
+                                                name="dateOfBirth"
+                                                value={signUpForm.dateOfBirth}
+                                                onChange={handleSignupChange}
+                                                style={inputStyle}
+                                                type="date"
+                                                required
+                                            />
+                                        </div>
+                                    </>
+                                )}
+
+                                <div style={{ marginTop: "1rem" }}>
+                                    <button
+                                        type="submit"
+                                        style={{ ...primaryButton, width: "100%" }}
+                                        disabled={signingUp}
+                                    >
+                                        {signingUp ? "Signing up..." : "Create Account"}
                                     </button>
                                 </div>
                             </form>
+
+                            <div style={{ marginTop: "1rem", textAlign: "center", fontSize: 14, color: "#ccc" }}>
+                                By signing up, you agree to our <a href="/terms" style={{ color: "#2b6cff" }}>Terms of Service</a> and <a href="/privacy" style={{ color: "#2b6cff" }}>Privacy Policy</a>.
+                            </div>
                         </div>
                     </div>
                 </div>
