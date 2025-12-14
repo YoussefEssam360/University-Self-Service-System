@@ -47,7 +47,7 @@ namespace University_Self_Service_System___Backend.Migrations
 
                     b.HasIndex("ProfessorId");
 
-                    b.ToTable("Courses", (string)null);
+                    b.ToTable("Courses");
                 });
 
             modelBuilder.Entity("University_Self_Service_System___Backend.Entities.Enrollment", b =>
@@ -73,7 +73,7 @@ namespace University_Self_Service_System___Backend.Migrations
 
                     b.HasIndex("StudentId");
 
-                    b.ToTable("Enrollments", (string)null);
+                    b.ToTable("Enrollments");
                 });
 
             modelBuilder.Entity("University_Self_Service_System___Backend.Entities.Professor", b =>
@@ -96,9 +96,15 @@ namespace University_Self_Service_System___Backend.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
-                    b.ToTable("Professors", (string)null);
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("Professors");
                 });
 
             modelBuilder.Entity("University_Self_Service_System___Backend.Entities.Student", b =>
@@ -117,9 +123,15 @@ namespace University_Self_Service_System___Backend.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
-                    b.ToTable("Students", (string)null);
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("Students");
                 });
 
             modelBuilder.Entity("University_Self_Service_System___Backend.Entities.User", b =>
@@ -148,7 +160,7 @@ namespace University_Self_Service_System___Backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("University_Self_Service_System___Backend.Entities.Course", b =>
@@ -179,6 +191,28 @@ namespace University_Self_Service_System___Backend.Migrations
                     b.Navigation("Student");
                 });
 
+            modelBuilder.Entity("University_Self_Service_System___Backend.Entities.Professor", b =>
+                {
+                    b.HasOne("University_Self_Service_System___Backend.Entities.User", "User")
+                        .WithOne("ProfessorProfile")
+                        .HasForeignKey("University_Self_Service_System___Backend.Entities.Professor", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("University_Self_Service_System___Backend.Entities.Student", b =>
+                {
+                    b.HasOne("University_Self_Service_System___Backend.Entities.User", "User")
+                        .WithOne("StudentProfile")
+                        .HasForeignKey("University_Self_Service_System___Backend.Entities.Student", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("University_Self_Service_System___Backend.Entities.Course", b =>
                 {
                     b.Navigation("Enrollments");
@@ -192,6 +226,15 @@ namespace University_Self_Service_System___Backend.Migrations
             modelBuilder.Entity("University_Self_Service_System___Backend.Entities.Student", b =>
                 {
                     b.Navigation("Enrollments");
+                });
+
+            modelBuilder.Entity("University_Self_Service_System___Backend.Entities.User", b =>
+                {
+                    b.Navigation("ProfessorProfile")
+                        .IsRequired();
+
+                    b.Navigation("StudentProfile")
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

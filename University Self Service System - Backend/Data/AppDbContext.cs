@@ -10,36 +10,41 @@ namespace University_Self_Service_System___Backend.Data
         {
         }
 
-        
         public DbSet<Student> Students { get; set; }
         public DbSet<Course> Courses { get; set; }
         public DbSet<Professor> Professors { get; set; }
         public DbSet<Enrollment> Enrollments { get; set; }
         public DbSet<User> Users { get; set; }
 
-
-        // --- Configuration for Data Constraints ---
-        // In your AppDbContext.cs file:
-
-        // In your AppDbContext.cs file (Updated Fluent API):
-
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // ... other configurations ...
-
-            // 1. Configure Course <-> Enrollment Relationship
+            // Course <-> Enrollment
             modelBuilder.Entity<Enrollment>()
                 .HasOne(e => e.Course)
-                .WithMany(c => c.Enrollments) // Explicitly link to the Enrollments collection in Course.cs
+                .WithMany(c => c.Enrollments)
                 .HasForeignKey(e => e.CourseId)
-                .OnDelete(DeleteBehavior.Cascade); // Cascade Delete for Course
+                .OnDelete(DeleteBehavior.Cascade);
 
-            // 2. Configure Student <-> Enrollment Relationship
+            // Student <-> Enrollment
             modelBuilder.Entity<Enrollment>()
                 .HasOne(e => e.Student)
-                .WithMany(s => s.Enrollments) // Explicitly link to the Enrollments collection in Student.cs
+                .WithMany(s => s.Enrollments)
                 .HasForeignKey(e => e.StudentId)
-                .OnDelete(DeleteBehavior.Cascade); // Cascade Delete for Student
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // User (1) <-> Student (1)  --- one-to-one profile
+            modelBuilder.Entity<Student>()
+                .HasOne(s => s.User)
+                .WithOne(u => u.StudentProfile)
+                .HasForeignKey<Student>(s => s.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // User (1) <-> Professor (1) --- one-to-one profile
+            modelBuilder.Entity<Professor>()
+                .HasOne(p => p.User)
+                .WithOne(u => u.ProfessorProfile)
+                .HasForeignKey<Professor>(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             base.OnModelCreating(modelBuilder);
         }
