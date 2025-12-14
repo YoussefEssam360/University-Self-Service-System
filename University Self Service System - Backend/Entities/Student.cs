@@ -3,17 +3,20 @@
     // Entities/Student.cs
     public class Student
     {
-        internal object User;
-
         public int Id { get; set; }                 // primary key
 
         // Link to the User account (one-to-one)
         public int UserId { get; set; }
-        public User User { get; set; }
+        public User User { get; set; } = null!;     // EF will populate; use null-forgiving to silence warnings
 
         // profile fields (kept for display/search)
-        public string Name { get; set; }
-        public string Email { get; set; }
+        // keep existing fields, and add the fields your teammates referenced
+        public string Name { get; set; } = null!;
+        public string FullName { get; set; } = null!;
+        public string StudentNumber { get; set; } = null!;
+        public DateTime? DateOfBirth { get; set; }
+        public string Major { get; set; } = null!;
+        public string Email { get; set; } = null!;
 
         // navigation: one student → many enrollments
         public ICollection<Enrollment> Enrollments { get; set; }
