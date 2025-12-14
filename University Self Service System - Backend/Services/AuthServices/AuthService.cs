@@ -148,9 +148,12 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
         {
             var jwtSettings = _configuration.GetSection("Jwt");
 
-            var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtSettings["Key"]));
+            var keyValue = jwtSettings["Key"] ?? throw new InvalidOperationException("Jwt:Key is not configured.");
+            var issuer = jwtSettings["Issuer"] ?? throw new InvalidOperationException("Jwt:Issuer is not configured.");
+            var audience = jwtSettings["Audience"] ?? throw new InvalidOperationException("Jwt:Audience is not configured.");
+            var durationMinutesText = jwtSettings["DurationMinutes"] ?? "60";
 
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyValue));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var claims = new List<Claim>
@@ -161,11 +164,10 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
             };
 
             var token = new JwtSecurityToken(
-                issuer: jwtSettings["Issuer"],
-                audience: jwtSettings["Audience"],
+                issuer: issuer,
+                audience: audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(
-                    double.Parse(jwtSettings["DurationMinutes"] ?? "60")),
+                expires: DateTime.UtcNow.AddMinutes(double.Parse(durationMinutesText)),
                 signingCredentials: creds
             );
 
