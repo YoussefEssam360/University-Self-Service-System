@@ -19,6 +19,7 @@ export default function Login() {
         password: "",
         confirmPassword: "",
         role: "Student", // default
+        department: ""
     });
     const [signupError, setSignupError] = useState("");
     const [signingUp, setSigningUp] = useState(false);
@@ -56,6 +57,7 @@ export default function Login() {
             password: "",
             confirmPassword: "",
             role: "Student",
+            department: ""
         });
         setSigningUp(false);
     };
@@ -78,6 +80,12 @@ export default function Login() {
             return;
         }
 
+        // require department when signing up as Professor
+        if (signUpForm.role === "Professor" && !signUpForm.department?.trim()) {
+            setSignupError("Please select a department for professor accounts.");
+            return;
+        }
+
         setSigningUp(true);
 
         try {
@@ -87,9 +95,10 @@ export default function Login() {
                 email: signUpForm.email,
                 password: signUpForm.password,
                 role: signUpForm.role, // "Student" or "Professor"
+                department: signUpForm.role === "Professor" ? signUpForm.department : null
             };
 
-            const res = await axiosClient.post("/Auth/register", payload);
+            await axiosClient.post("/Auth/register", payload);
 
             // After successful registration, auto-login:
             await login(signUpForm.username, signUpForm.password);
@@ -343,6 +352,25 @@ export default function Login() {
                                         Professor
                                     </label>
                                 </div>
+
+                                {/* Department dropdown shown only for Professor */}
+                                {signUpForm.role === "Professor" && (
+                                    <div style={fieldWrapStyle}>
+                                        <label style={labelStyle}>Department</label>
+                                        <select
+                                            name="department"
+                                            value={signUpForm.department}
+                                            onChange={handleSignupChange}
+                                            style={{ ...inputStyle, appearance: "none" }}
+                                            required
+                                        >
+                                            <option value="">Select department</option>
+                                            <option value="Computer Science">Computer Science</option>
+                                            <option value="Engineering">Engineering</option>
+                                            <option value="Business">Business</option>
+                                        </select>
+                                    </div>
+                                )}
 
                                 <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
                                     <button type="submit" disabled={signingUp} style={{ ...neutralButton, flex: 1 }}>
