@@ -3,6 +3,8 @@
     // Entities/Student.cs
     public class Student
     {
+        internal object User;
+
         public int Id { get; set; }                 // primary key
 
         // Link to the User account (one-to-one)

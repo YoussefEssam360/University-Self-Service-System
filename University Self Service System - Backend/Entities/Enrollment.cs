@@ -1,4 +1,5 @@
-﻿namespace University_Self_Service_System___Backend.Entities
+﻿
+namespace University_Self_Service_System___Backend.Entities
 {
     // Join table between Student and Course
     public class Enrollment
@@ -15,5 +16,6 @@
 
         // null if not graded yet
         public double? Grade { get; set; }
+        public DateTime EnrolledAt { get; internal set; }
     }
 }
