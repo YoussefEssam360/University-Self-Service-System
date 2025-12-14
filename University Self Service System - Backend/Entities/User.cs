@@ -12,5 +12,9 @@
 
         // "Student", "Professor", "Admin", etc.
         public string Role { get; set; }
+
+        // optional one-to-one navigation to profile entities
+        public Student StudentProfile { get; set; }
+        public Professor ProfessorProfile { get; set; }
     }
 }
