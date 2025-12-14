@@ -1,8 +1,8 @@
-﻿// src/pages/AdminCoursesPage.jsx
-import { useEffect, useState, Fragment } from "react";
+﻿import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import axiosClient from "../api/axiosClient";
 import { useAuth } from "../context/AuthContext";
-import { Link } from "react-router-dom";
+import CourseModal from "./CourseModal";
 
 export default function AdminCoursesPage() {
     const { user } = useAuth();
@@ -10,309 +10,249 @@ export default function AdminCoursesPage() {
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [editingCourse, setEditingCourse] = useState(null);
 
-    const [editForm, setEditForm] = useState({
-        id: "",
-        title: "",
-        code: "",
-        creditHours: "",
-        professorId: "",
-    });
+    // modal state
+    const [modalOpen, setModalOpen] = useState(false);
+    const [modalInitial, setModalInitial] = useState(null);
 
-    // track expanded course rows to show professor + enrolled students
-    const [expanded, setExpanded] = useState(new Set());
-
-    // Prefer legacy 'courseCode' (string) as stable identifier
     const getId = (course) =>
         course?.courseCode ?? course?.CourseCode ?? course?.code ?? course?.id ?? null;
 
-    // normalize helper to read nested fields regardless of casing variations
-    const getProfessorName = (course) =>
-        course?.professorName ??
-        course?.ProfessorName ??
-        course?.Professor?.name ??
-        course?.professor?.name ??
-        "Not Assigned";
+    const loadCourses = async () => {
+        setLoading(true);
+        try {
+            const res = await axiosClient.get("/CourseFactory");
+            setCourses(res.data ?? []);
+        } catch (err) {
+            setError("Failed to load courses.");
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-    const getEnrolledStudents = (course) =>
-        course?.enrolledStudents ??
-        course?.EnrolledStudents ??
-        course?.enrollments ??
-        course?.Enrollments ??
-        [];
-
-    // Load from backend
     useEffect(() => {
-        const load = async () => {
-            try {
-                const res = await axiosClient.get("/CourseFactory");
-                setCourses(res.data ?? []);
-            } catch {
-                setError("Failed to load courses.");
-            } finally {
-                setLoading(false);
-            }
-        };
-        load();
+        loadCourses();
     }, []);
 
-    const toggleExpanded = (courseCode) => {
-        setExpanded((prev) => {
-            const copy = new Set(prev);
-            if (copy.has(courseCode)) copy.delete(courseCode);
-            else copy.add(courseCode);
-            return copy;
-        });
+    const openCreate = () => {
+        setModalInitial(null);
+        setModalOpen(true);
     };
 
-    // Delete course: backend Delete expects body { Code }
-    const handleDelete = async (courseCode) => {
-        if (!window.confirm("Are you sure?")) return;
+    const openEdit = (course) => {
+        setModalInitial(course);
+        setModalOpen(true);
+    };
 
+    const handleDelete = async (courseCode) => {
+        if (!window.confirm("Are you sure you want to delete this course?")) return;
         try {
             await axiosClient.delete("/CourseFactory", { data: { Code: courseCode } });
-            setCourses((prev) => prev.filter((c) => getId(c) !== courseCode));
-        } catch {
+            await loadCourses();
+        } catch (err) {
             alert("Failed to delete.");
+            console.error(err);
         }
     };
 
-    const startEdit = (course) => {
-        const id = getId(course);
-        if (id === null) {
-            console.warn("Could not determine course id for edit:", course);
-            return;
-        }
-
-        setEditingCourse(id);
-        setEditForm({
-            id,
-            title: course.title ?? "",
-            code: course.courseCode ?? course.code ?? "",
-            creditHours: course.creditHours ?? "",
-            professorId: course.professorId ?? "",
-        });
+    const toggleExpanded = (courseCode) => {
+        setCourses((prev) => prev.map((c) => (getId(c) === courseCode ? { ...c, expanded: !c.expanded } : c)));
     };
 
-    const cancelEdit = () => {
-        setEditingCourse(null);
-        setEditForm({
-            id: "",
-            title: "",
-            code: "",
-            creditHours: "",
-            professorId: "",
-        });
+    // ===== STYLES =====
+    const pageStyle = {
+        position: "fixed",
+        inset: 0,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        background: "#0b0b0c",
+        color: "white",
+        padding: "2rem",
+        boxSizing: "border-box",
+        overflowY: "auto",
     };
 
-    const handleEditChange = (e) => {
-        const { name, value } = e.target;
-        setEditForm((prev) => ({ ...prev, [name]: value }));
+    const cardStyle = {
+        width: "100%",
+        maxWidth: 1100,
+        background: "#0f0f10",
+        borderRadius: 12,
+        padding: "2rem",
+        boxShadow: "0 12px 32px rgba(0,0,0,0.6)",
+        boxSizing: "border-box",
     };
 
-    const saveEdit = async (e) => {
-        e.preventDefault();
-
-        try {
-            const payload = {
-                OriginalCode: editForm.id,
-                Code: editForm.code,
-                Title: editForm.title,
-                CreditHours: Number(editForm.creditHours),
-            };
-
-            await axiosClient.put("/CourseFactory", payload);
-
-            setCourses((prev) =>
-                prev.map((c) => {
-                    const cid = getId(c);
-                    return cid === editForm.id
-                        ? {
-                            ...c,
-                            title: payload.Title,
-                            code: payload.Code,
-                            courseCode: payload.Code,
-                            creditHours: payload.CreditHours,
-                        }
-                        : c;
-                })
-            );
-
-            cancelEdit();
-        } catch {
-            alert("Failed to save changes.");
-        }
+    const headerStyle = {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 24,
+        flexWrap: "wrap",
+        gap: 12,
     };
 
-    if (loading) return <p style={{ color: "white" }}>Loading...</p>;
-    if (error) return <p style={{ color: "red" }}>{error}</p>;
+    const titleBlock = {
+        display: "flex",
+        flexDirection: "column",
+        gap: 4,
+    };
+
+    const backLinkStyle = {
+        color: "#4cf",
+        textDecoration: "none",
+        fontSize: 14,
+    };
+
+    const primaryButton = {
+        background: "#2b6cff",
+        color: "white",
+        padding: "0.7rem 1rem",
+        borderRadius: 8,
+        border: "none",
+        cursor: "pointer",
+        fontWeight: 600,
+    };
+
+    const neutralButton = {
+        background: "#111",
+        color: "white",
+        padding: "0.5rem 0.8rem",
+        borderRadius: 6,
+        border: "1px solid #333",
+        cursor: "pointer",
+    };
+
+    const deleteButton = {
+        ...neutralButton,
+        color: "#ff4d4d",
+        borderColor: "#ff4d4d",
+    };
+
+    const tableStyle = {
+        width: "100%",
+        borderCollapse: "collapse",
+        marginTop: 12,
+    };
+
+    const thStyle = {
+        padding: 14,
+        textAlign: "left",
+        borderBottom: "1px solid #222",
+        color: "#aaa",
+        fontWeight: 600,
+    };
+
+    const tdStyle = {
+        padding: 14,
+        borderBottom: "1px solid #1a1a1a",
+    };
+
+    const expandedRowStyle = {
+        background: "#0a0a0a",
+        padding: 16,
+    };
+
+    // ===== RENDER =====
+    if (loading) {
+        return (
+            <div style={pageStyle}>
+                <p>Loading courses...</p>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div style={pageStyle}>
+                <p style={{ color: "red" }}>{error}</p>
+            </div>
+        );
+    }
 
     return (
-        <div style={{ padding: "20px", color: "white" }}>
-            <h1>All Courses</h1>
-            <p>
-                Logged in as: <strong>{user?.username}</strong>
-            </p>
-
-            <Link to="/admin" style={{ color: "#4cf" }}>
-                ← Back to Dashboard
-            </Link>
-
-            <div style={{ marginTop: "20px" }}>
-                <Link to="/admin/courses/new">
-                    <button>+ Create New Course</button>
-                </Link>
-            </div>
-
-            {/* EDIT FORM */}
-            {editingCourse !== null && (
-                <form
-                    onSubmit={saveEdit}
-                    style={{
-                        marginBottom: "20px",
-                        padding: "15px",
-                        border: "1px solid #555",
-                        borderRadius: "8px",
-                    }}
-                >
-                    <h3>Edit Course</h3>
-
-                    <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-                        <label style={{ display: "flex", flexDirection: "column" }}>
-                            Title
-                            <input name="title" value={editForm.title} onChange={handleEditChange} />
-                        </label>
-
-                        <label style={{ display: "flex", flexDirection: "column" }}>
-                            Code
-                            <input name="code" value={editForm.code} onChange={handleEditChange} />
-                        </label>
-
-                        <label style={{ display: "flex", flexDirection: "column" }}>
-                            Credit Hours
-                            <input
-                                type="number"
-                                name="creditHours"
-                                value={editForm.creditHours}
-                                onChange={handleEditChange}
-                            />
-                        </label>
-
-                        <label style={{ display: "flex", flexDirection: "column" }}>
-                            Professor ID
-                            <input
-                                type="number"
-                                name="professorId"
-                                value={editForm.professorId}
-                                onChange={handleEditChange}
-                            />
-                        </label>
+        <div style={pageStyle}>
+            <div style={cardStyle}>
+                <div style={headerStyle}>
+                    <div style={titleBlock}>
+                        <Link to="/admin" style={backLinkStyle}>← Back to Dashboard</Link>
+                        <h1 style={{ margin: 0, fontSize: "2rem" }}>Course Management</h1>
+                        <div style={{ color: "#888", fontSize: 14 }}>
+                            Logged in as: <strong style={{ color: "white" }}>{user?.username}</strong>
+                        </div>
                     </div>
 
-                    <button type="submit">Save</button>
-                    <button type="button" onClick={cancelEdit} style={{ marginLeft: 10 }}>
-                        Cancel
-                    </button>
-                </form>
-            )}
+                    <button onClick={openCreate} style={primaryButton}>+ Create New Course</button>
+                </div>
 
-            {/* TABLE */}
-            <div style={{ maxHeight: "600px", overflowY: "auto", marginTop: 16 }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <table style={tableStyle}>
                     <thead>
-                        <tr style={{ background: "#222" }}>
-                            <th style={{ padding: 10 }}>Title</th>
-                            <th style={{ padding: 10 }}>Code</th>
-                            <th style={{ padding: 10 }}>Credit Hours</th>
-                            <th style={{ padding: 10 }}>Professor</th>
-                            <th style={{ padding: 10 }}>Actions</th>
+                        <tr>
+                            <th style={thStyle}>Title</th>
+                            <th style={thStyle}>Code</th>
+                            <th style={thStyle}>Credit Hours</th>
+                            <th style={thStyle}>Professor</th>
+                            <th style={thStyle}>Actions</th>
                         </tr>
                     </thead>
-
                     <tbody>
                         {courses.length === 0 && (
                             <tr>
-                                <td colSpan={5} style={{ padding: 10, textAlign: "center" }}>
-                                    No courses found.
+                                <td colSpan={5} style={{ ...tdStyle, textAlign: "center", color: "#888" }}>
+                                    No courses found. Create one to get started.
                                 </td>
                             </tr>
                         )}
-
                         {courses.map((c) => {
                             const cid = getId(c);
-                            const profName = getProfessorName(c);
-                            const students = getEnrolledStudents(c);
-
                             return (
-                                <Fragment key={cid ?? Math.random()}>
-                                    <tr style={{ borderTop: "1px solid #333" }}>
-                                        <td style={{ padding: 10 }}>{c.title}</td>
-                                        <td style={{ padding: 10 }}>{c.courseCode ?? c.code}</td>
-                                        <td style={{ padding: 10 }}>{c.creditHours}</td>
-                                        <td style={{ padding: 10 }}>{profName}</td>
-                                        <td style={{ padding: 10, whiteSpace: "nowrap" }}>
-                                            <button onClick={() => startEdit(c)}>Edit</button>
-
-                                            <button
-                                                onClick={() => handleDelete(cid)}
-                                                style={{ marginLeft: 10, color: "red" }}
-                                            >
-                                                Delete
-                                            </button>
-
-                                            <button style={{ marginLeft: 10 }} onClick={() => toggleExpanded(cid)}>
-                                                {expanded.has(cid) ? "Hide" : "View"} Students
+                                <React.Fragment key={cid ?? Math.random()}>
+                                    <tr>
+                                        <td style={tdStyle}>{c.title}</td>
+                                        <td style={tdStyle}>{c.courseCode ?? c.code}</td>
+                                        <td style={tdStyle}>{c.creditHours}</td>
+                                        <td style={tdStyle}>{c.professorName ?? "Not Assigned"}</td>
+                                        <td style={tdStyle}>
+                                            <button onClick={() => openEdit(c)} style={{ ...neutralButton, marginRight: 8 }}>Edit</button>
+                                            <button onClick={() => handleDelete(cid)} style={{ ...deleteButton, marginRight: 8 }}>Delete</button>
+                                            <button onClick={() => toggleExpanded(cid)} style={neutralButton}>
+                                                {c.expanded ? "Hide" : "View"} Students
                                             </button>
                                         </td>
                                     </tr>
 
-                                    {/* Expanded details row */}
-                                    {expanded.has(cid) && (
-                                        <tr style={{ background: "#111" }}>
-                                            <td colSpan={5} style={{ padding: 10 }}>
-                                                <h4 style={{ marginTop: 0 }}>Enrolled Students</h4>
-
-                                                {students.length === 0 ? (
-                                                    <p>No students enrolled.</p>
+                                    {c.expanded && (
+                                        <tr>
+                                            <td colSpan={5} style={expandedRowStyle}>
+                                                <strong>Enrolled Students</strong>
+                                                {(!c.enrolledStudents || c.enrolledStudents.length === 0) ? (
+                                                    <div style={{ paddingTop: 8, color: "#888" }}>No students enrolled.</div>
                                                 ) : (
-                                                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                                                        <thead>
-                                                            <tr style={{ background: "#222" }}>
-                                                                <th style={{ padding: 8 }}>Student Id</th>
-                                                                <th style={{ padding: 8 }}>Name</th>
-                                                                <th style={{ padding: 8 }}>Email</th>
-                                                                <th style={{ padding: 8 }}>Grade</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {students.map((s, idx) => (
-                                                                <tr
-                                                                    key={s.studentId ?? s.StudentId ?? idx}
-                                                                    style={{ borderTop: "1px solid #333" }}
-                                                                >
-                                                                    <td style={{ padding: 8 }}>
-                                                                        {s.studentId ?? s.StudentId ?? "-"}
-                                                                    </td>
-                                                                    <td style={{ padding: 8 }}>
-                                                                        {s.name ?? s.Name ?? s.username ?? "-"}
-                                                                    </td>
-                                                                    <td style={{ padding: 8 }}>{s.email ?? s.Email ?? "-"}</td>
-                                                                    <td style={{ padding: 8 }}>{s.grade ?? s.Grade ?? "-"}</td>
-                                                                </tr>
-                                                            ))}
-                                                        </tbody>
-                                                    </table>
+                                                    <ul style={{ marginTop: 8, paddingLeft: 20 }}>
+                                                        {c.enrolledStudents.map((s, idx) => (
+                                                            <li key={idx} style={{ padding: "4px 0" }}>
+                                                                {s.name ?? s.Name ?? s.studentId}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
                                                 )}
                                             </td>
                                         </tr>
                                     )}
-                                </Fragment>
+                                </React.Fragment>
                             );
                         })}
                     </tbody>
                 </table>
             </div>
+
+            <CourseModal
+                open={modalOpen}
+                onClose={() => setModalOpen(false)}
+                initialCourse={modalInitial}
+                refresh={loadCourses}
+            />
         </div>
     );
 }
