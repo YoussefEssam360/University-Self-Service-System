@@ -19,5 +19,8 @@ namespace University_Self_Service_System___Backend.DTOs.AuthDTOs
 
         [Required]
         public required string Role { get; set; }    // will further validate in service
+
+        // optional for Student, required/used for Professor signup
+        public string? Department { get; set; }
     }
 }

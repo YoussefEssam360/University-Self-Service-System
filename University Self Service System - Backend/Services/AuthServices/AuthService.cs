@@ -61,8 +61,36 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
                 PasswordHash = HashPassword(dto.Password)
             };
 
+            // Save the user first so we have the generated Id
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
+
+            // Create profile row for Student or Professor (Admin accounts are created manually)
+            if (normalizedRole == "Student")
+            {
+                var student = new Student
+                {
+                    UserId = user.Id,
+                    Name = user.Username,
+                    Email = user.Email
+                };
+
+                _context.Students.Add(student);
+                await _context.SaveChangesAsync();
+            }
+            else if (normalizedRole == "Professor")
+            {
+                var professor = new Professor
+                {
+                    UserId = user.Id,
+                    Name = user.Username,
+                    Email = user.Email,
+                    Department = string.IsNullOrWhiteSpace(dto.Department) ? "Unknown" : dto.Department.Trim()
+                };
+
+                _context.Professors.Add(professor);
+                await _context.SaveChangesAsync();
+            }
 
             var token = GenerateJwtToken(user);
 

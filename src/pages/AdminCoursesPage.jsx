@@ -1,5 +1,5 @@
 ﻿// src/pages/AdminCoursesPage.jsx
-import { useEffect, useState, Fragment } from "react";
+import React, { useEffect, useState } from "react";
 import axiosClient from "../api/axiosClient";
 import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
@@ -47,6 +47,7 @@ export default function AdminCoursesPage() {
         const load = async () => {
             try {
                 const res = await axiosClient.get("/CourseFactory");
+                console.log("GET /api/CourseFactory =>", res.data);
                 setCourses(res.data ?? []);
             } catch {
                 setError("Failed to load courses.");
@@ -129,12 +130,12 @@ export default function AdminCoursesPage() {
                     const cid = getId(c);
                     return cid === editForm.id
                         ? {
-                            ...c,
-                            title: payload.Title,
-                            code: payload.Code,
-                            courseCode: payload.Code,
-                            creditHours: payload.CreditHours,
-                        }
+                              ...c,
+                              title: payload.Title,
+                              code: payload.Code,
+                              courseCode: payload.Code,
+                              creditHours: payload.CreditHours,
+                          }
                         : c;
                 })
             );
@@ -151,13 +152,9 @@ export default function AdminCoursesPage() {
     return (
         <div style={{ padding: "20px", color: "white" }}>
             <h1>All Courses</h1>
-            <p>
-                Logged in as: <strong>{user?.username}</strong>
-            </p>
+            <p>Logged in as: <strong>{user?.username}</strong></p>
 
-            <Link to="/admin" style={{ color: "#4cf" }}>
-                ← Back to Dashboard
-            </Link>
+            <Link to="/admin" style={{ color: "#4cf" }}>← Back to Dashboard</Link>
 
             <div style={{ marginTop: "20px" }}>
                 <Link to="/admin/courses/new">
@@ -181,12 +178,20 @@ export default function AdminCoursesPage() {
                     <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
                         <label style={{ display: "flex", flexDirection: "column" }}>
                             Title
-                            <input name="title" value={editForm.title} onChange={handleEditChange} />
+                            <input
+                                name="title"
+                                value={editForm.title}
+                                onChange={handleEditChange}
+                            />
                         </label>
 
                         <label style={{ display: "flex", flexDirection: "column" }}>
                             Code
-                            <input name="code" value={editForm.code} onChange={handleEditChange} />
+                            <input
+                                name="code"
+                                value={editForm.code}
+                                onChange={handleEditChange}
+                            />
                         </label>
 
                         <label style={{ display: "flex", flexDirection: "column" }}>
@@ -245,13 +250,13 @@ export default function AdminCoursesPage() {
                             const students = getEnrolledStudents(c);
 
                             return (
-                                <Fragment key={cid ?? Math.random()}>
+                                <React.Fragment key={cid ?? Math.random()}>
                                     <tr style={{ borderTop: "1px solid #333" }}>
                                         <td style={{ padding: 10 }}>{c.title}</td>
                                         <td style={{ padding: 10 }}>{c.courseCode ?? c.code}</td>
                                         <td style={{ padding: 10 }}>{c.creditHours}</td>
                                         <td style={{ padding: 10 }}>{profName}</td>
-                                        <td style={{ padding: 10, whiteSpace: "nowrap" }}>
+                                        <td style={{ padding: 10 }}>
                                             <button onClick={() => startEdit(c)}>Edit</button>
 
                                             <button
@@ -261,7 +266,10 @@ export default function AdminCoursesPage() {
                                                 Delete
                                             </button>
 
-                                            <button style={{ marginLeft: 10 }} onClick={() => toggleExpanded(cid)}>
+                                            <button
+                                                style={{ marginLeft: 10 }}
+                                                onClick={() => toggleExpanded(cid)}
+                                            >
                                                 {expanded.has(cid) ? "Hide" : "View"} Students
                                             </button>
                                         </td>
@@ -287,16 +295,9 @@ export default function AdminCoursesPage() {
                                                         </thead>
                                                         <tbody>
                                                             {students.map((s, idx) => (
-                                                                <tr
-                                                                    key={s.studentId ?? s.StudentId ?? idx}
-                                                                    style={{ borderTop: "1px solid #333" }}
-                                                                >
-                                                                    <td style={{ padding: 8 }}>
-                                                                        {s.studentId ?? s.StudentId ?? "-"}
-                                                                    </td>
-                                                                    <td style={{ padding: 8 }}>
-                                                                        {s.name ?? s.Name ?? s.username ?? "-"}
-                                                                    </td>
+                                                                <tr key={s.studentId ?? s.StudentId ?? idx} style={{ borderTop: "1px solid #333" }}>
+                                                                    <td style={{ padding: 8 }}>{s.studentId ?? s.StudentId ?? "-"}</td>
+                                                                    <td style={{ padding: 8 }}>{s.name ?? s.Name ?? s.username ?? "-"}</td>
                                                                     <td style={{ padding: 8 }}>{s.email ?? s.Email ?? "-"}</td>
                                                                     <td style={{ padding: 8 }}>{s.grade ?? s.Grade ?? "-"}</td>
                                                                 </tr>
@@ -307,7 +308,7 @@ export default function AdminCoursesPage() {
                                             </td>
                                         </tr>
                                     )}
-                                </Fragment>
+                                </React.Fragment>
                             );
                         })}
                     </tbody>
