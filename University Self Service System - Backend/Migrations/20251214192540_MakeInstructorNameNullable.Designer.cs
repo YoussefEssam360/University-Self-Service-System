@@ -12,8 +12,8 @@ using University_Self_Service_System___Backend.Data;
 namespace University_Self_Service_System___Backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251214183225_AddUniqueIndexesForPhoneNumbers")]
-    partial class AddUniqueIndexesForPhoneNumbers
+    [Migration("20251214192540_MakeInstructorNameNullable")]
+    partial class MakeInstructorNameNullable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -33,6 +33,9 @@ namespace University_Self_Service_System___Backend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("Capacity")
+                        .HasColumnType("int");
+
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -44,7 +47,6 @@ namespace University_Self_Service_System___Backend.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("InstructorName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("ProfessorId")
@@ -119,12 +121,16 @@ namespace University_Self_Service_System___Backend.Migrations
 
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PhoneNumber")
+                        .IsUnique();
 
                     b.HasIndex("UserId")
                         .IsUnique();
@@ -161,15 +167,16 @@ namespace University_Self_Service_System___Backend.Migrations
 
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("StudentNumber")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PhoneNumber")
+                        .IsUnique();
 
                     b.HasIndex("UserId")
                         .IsUnique();

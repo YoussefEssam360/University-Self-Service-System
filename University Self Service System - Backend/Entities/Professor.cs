@@ -1,23 +1,22 @@
-﻿namespace University_Self_Service_System___Backend.Entities
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace University_Self_Service_System___Backend.Entities
 {
     public class Professor
     {
-        public int Id { get; set; }                 // primary key
-
-        // Link to the User account (one-to-one)
+        public int Id { get; set; }
         public int UserId { get; set; }
-        public User User { get; set; }
+        public User User { get; set; } = null!;
 
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
         public string FullName { get; set; } = null!;
-        public string Email { get; set; }      
+        public string Email { get; set; } = null!;
 
-        // New: Phone number for professor (required)
+        [MaxLength(50)]
         public string PhoneNumber { get; set; } = null!;
 
-        public string Department { get; set; }
+        public string Department { get; set; } = null!;
 
-        // navigation: one professor → many courses
         public ICollection<Course> Courses { get; set; } = new List<Course>();
     }
 }

@@ -1,24 +1,24 @@
-﻿
-namespace University_Self_Service_System___Backend.Entities
+﻿namespace University_Self_Service_System___Backend.Entities
 {
     public class Course
     {
-        internal readonly int Capacity;
-
-        public int Id { get; set; }                 // primary key
-        public string Code { get; set; }            // e.g. "CSCI313"
-        public string Title { get; set; }
+        public int Id { get; set; }
+        public string Code { get; set; } = null!;
+        public string Title { get; set; } = null!;
         public int CreditHours { get; set; }
 
-        // optional FK to the professor teaching this course
+        // Optional: assigned later through professor management
         public int? ProfessorId { get; set; }
-        public Professor Professor { get; set; }
+        public Professor? Professor { get; set; }
 
-        // navigation: one course → many enrollments
-        public ICollection<Enrollment> Enrollments { get; set; }
-            = new List<Enrollment>();
-        public string InstructorName { get; internal set; }
-        public DateTime StartDate { get; internal set; }
-        public DateTime EndDate { get; internal set; }
+        // Optional: derived from Professor.FullName when assigned
+        public string? InstructorName { get; set; }
+
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+
+        public int Capacity { get; set; }
+
+        public ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
     }
 }

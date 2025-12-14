@@ -32,7 +32,7 @@ namespace University_Self_Service_System___Backend.Data
                 .HasForeignKey(e => e.StudentId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // User (1) <-> Student (1)  --- one-to-one profile
+            // User (1) <-> Student (1) --- one-to-one profile
             modelBuilder.Entity<Student>()
                 .HasOne(s => s.User)
                 .WithOne(u => u.StudentProfile)
@@ -45,6 +45,15 @@ namespace University_Self_Service_System___Backend.Data
                 .WithOne(u => u.ProfessorProfile)
                 .HasForeignKey<Professor>(p => p.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Unique indexes for PhoneNumber
+            modelBuilder.Entity<Student>()
+                .HasIndex(s => s.PhoneNumber)
+                .IsUnique();
+
+            modelBuilder.Entity<Professor>()
+                .HasIndex(p => p.PhoneNumber)
+                .IsUnique();
 
             base.OnModelCreating(modelBuilder);
         }
