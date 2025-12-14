@@ -14,8 +14,7 @@
         public string ProfessorName { get; set; }
         public bool profDontExist { get; set; } = false;
 
-
+        // List of enrolled students for admin/student pages
+        public List<StudentInCourseDto> EnrolledStudents { get; set; } = new();
     }
-
-    
 }
