@@ -11,11 +11,7 @@ import CreateCoursePage from "./pages/CreateCoursePage.jsx";
 // ⭐️ Import Student Components (based on your structure src/pages/Student/) ⭐️
 import StudentLayout from "./pages/Student/StudentLayout";
 import StudentRegistrationPage from "./pages/Student/StudentRegistrationPage";
-
-// Simple Student Courses placeholder
-const StudentCoursesPage = () => (
-    <div style={{ color: '#ffffff' }}>No current enrolled courses.</div>
-);
+import StudentCoursesPage from "./pages/Student/StudentCoursesPage";
 
 function App() {
     // ⭐️ Updated: Get all necessary auth states ⭐️

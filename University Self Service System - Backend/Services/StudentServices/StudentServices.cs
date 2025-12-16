@@ -105,8 +105,22 @@ namespace University_Self_Service_System___Backend.Services.StudentServices
         {
             var result = new OperationResult<IEnumerable<EnrolledCourseDto>>();
 
+            // Resolve student: accept either Student.Id or UserId from token
+            var student = await _db.Students.FindAsync(new object[] { studentId }, cancellationToken);
+            if (student == null)
+            {
+                student = await _db.Students.FirstOrDefaultAsync(s => s.UserId == studentId, cancellationToken);
+            }
+
+            if (student == null)
+            {
+                result.Data = new List<EnrolledCourseDto>();
+                result.Message = "No enrolled courses found.";
+                return result;
+            }
+
             var enrollments = await _db.Enrollments
-                .Where(e => e.StudentId == studentId)
+                .Where(e => e.StudentId == student.Id)
                 .Include(e => e.Course)
                 .ToListAsync(cancellationToken);
 
