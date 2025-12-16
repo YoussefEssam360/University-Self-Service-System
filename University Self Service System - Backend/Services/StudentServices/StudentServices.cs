@@ -143,23 +143,7 @@ namespace University_Self_Service_System___Backend.Services.StudentServices
                     return result;
                 }
 
-                var enrolledCount = await _db.Enrollments.CountAsync(e => e.CourseId == course.Id, cancellationToken);
-                if (course.Capacity > 0 && enrolledCount >= course.Capacity)
-                {
-                    result.Success = false;
-                    result.Message = "Course is full.";
-                    return result;
-                }
-
-                var already = await _db.Enrollments.AnyAsync(e => e.CourseId == course.Id && e.StudentId == studentId, cancellationToken);
-                if (already)
-                {
-                    result.Success = false;
-                    result.Message = "Student is already enrolled in this course.";
-                    return result;
-                }
-
-                // Try to find student by Student.Id first, then by UserId (accept user id in token)
+                // Resolve the student record first (accept either Student.Id or UserId)
                 var student = await _db.Students.FindAsync(new object[] { studentId }, cancellationToken);
                 if (student == null)
                 {
@@ -170,6 +154,23 @@ namespace University_Self_Service_System___Backend.Services.StudentServices
                 {
                     result.Success = false;
                     result.Message = "Student not found.";
+                    return result;
+                }
+
+                // Now use the resolved student.Id for all further checks to avoid mismatches
+                var enrolledCount = await _db.Enrollments.CountAsync(e => e.CourseId == course.Id, cancellationToken);
+                if (course.Capacity > 0 && enrolledCount >= course.Capacity)
+                {
+                    result.Success = false;
+                    result.Message = "Course is full.";
+                    return result;
+                }
+
+                var already = await _db.Enrollments.AnyAsync(e => e.CourseId == course.Id && e.StudentId == student.Id, cancellationToken);
+                if (already)
+                {
+                    result.Success = false;
+                    result.Message = "Student is already enrolled in this course.";
                     return result;
                 }
 
