@@ -130,64 +130,80 @@ namespace University_Self_Service_System___Backend.Services.StudentServices
         {
             var result = new OperationResult<EnrolledCourseDto>();
 
-            var course = await _db.Courses
-                .Include(c => c.Enrollments)
-                .FirstOrDefaultAsync(c => c.Id == registerDto.CourseId, cancellationToken);
-
-            if (course == null)
+            try
             {
-                result.Success = false;
-                result.Message = "Course not found.";
+                var course = await _db.Courses
+                    .Include(c => c.Enrollments)
+                    .FirstOrDefaultAsync(c => c.Id == registerDto.CourseId, cancellationToken);
+
+                if (course == null)
+                {
+                    result.Success = false;
+                    result.Message = "Course not found.";
+                    return result;
+                }
+
+                var enrolledCount = await _db.Enrollments.CountAsync(e => e.CourseId == course.Id, cancellationToken);
+                if (course.Capacity > 0 && enrolledCount >= course.Capacity)
+                {
+                    result.Success = false;
+                    result.Message = "Course is full.";
+                    return result;
+                }
+
+                var already = await _db.Enrollments.AnyAsync(e => e.CourseId == course.Id && e.StudentId == studentId, cancellationToken);
+                if (already)
+                {
+                    result.Success = false;
+                    result.Message = "Student is already enrolled in this course.";
+                    return result;
+                }
+
+                // Try to find student by Student.Id first, then by UserId (accept user id in token)
+                var student = await _db.Students.FindAsync(new object[] { studentId }, cancellationToken);
+                if (student == null)
+                {
+                    student = await _db.Students.FirstOrDefaultAsync(s => s.UserId == studentId, cancellationToken);
+                }
+
+                if (student == null)
+                {
+                    result.Success = false;
+                    result.Message = "Student not found.";
+                    return result;
+                }
+
+                var enrollment = new Enrollment
+                {
+                    CourseId = course.Id,
+                    StudentId = student.Id,
+                    EnrolledAt = DateTime.UtcNow
+                };
+
+                _db.Enrollments.Add(enrollment);
+                await _db.SaveChangesAsync(cancellationToken);
+
+                result.Data = new EnrolledCourseDto
+                {
+                    EnrollmentId = enrollment.Id,
+                    CourseId = course.Id,
+                    CourseTitle = course.Title,
+                    CourseCode = course.Code,
+                    InstructorName = course.InstructorName,
+                    StartDate = course.StartDate,
+                    EndDate = course.EndDate
+                };
+
+                result.Message = "Enrolled successfully.";
                 return result;
             }
-
-            var enrolledCount = await _db.Enrollments.CountAsync(e => e.CourseId == course.Id, cancellationToken);
-            if (course.Capacity > 0 && enrolledCount >= course.Capacity)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "RegisterForCourse failed for studentId {StudentId} courseId {CourseId}", studentId, registerDto?.CourseId);
                 result.Success = false;
-                result.Message = "Course is full.";
+                result.Message = "An internal error occurred while registering for the course.";
                 return result;
             }
-
-            var already = await _db.Enrollments.AnyAsync(e => e.CourseId == course.Id && e.StudentId == studentId, cancellationToken);
-            if (already)
-            {
-                result.Success = false;
-                result.Message = "Student is already enrolled in this course.";
-                return result;
-            }
-
-            var student = await _db.Students.FindAsync(new object[] { studentId }, cancellationToken);
-            if (student == null)
-            {
-                result.Success = false;
-                result.Message = "Student not found.";
-                return result;
-            }
-
-            var enrollment = new Enrollment
-            {
-                CourseId = course.Id,
-                StudentId = studentId,
-                EnrolledAt = DateTime.UtcNow
-            };
-
-            _db.Enrollments.Add(enrollment);
-            await _db.SaveChangesAsync(cancellationToken);
-
-            result.Data = new EnrolledCourseDto
-            {
-                EnrollmentId = enrollment.Id,
-                CourseId = course.Id,
-                CourseTitle = course.Title,
-                CourseCode = course.Code,
-                InstructorName = course.InstructorName,
-                StartDate = course.StartDate,
-                EndDate = course.EndDate
-            };
-
-            result.Message = "Enrolled successfully.";
-            return result;
         }
 
         public async Task<OperationResult<bool>> CancelRegistrationAsync(int studentId, CancelRegistrationDto cancelDto, CancellationToken cancellationToken = default)

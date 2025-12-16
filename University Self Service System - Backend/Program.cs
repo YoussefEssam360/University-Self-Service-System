@@ -7,6 +7,7 @@ using University_Self_Service_System___Backend.Mappings;
 using University_Self_Service_System___Backend.Services.AuthServices;
 using University_Self_Service_System___Backend.Services.CourseFactory;
 using University_Self_Service_System___Backend.Services.ProfManagement;
+using University_Self_Service_System___Backend.Services.StudentServices;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -44,6 +45,9 @@ builder.Services.AddScoped<ICourseService, courseServices>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
 builder.Services.AddScoped<IProfManagementService, profManagementService>();
+
+// Register student service
+builder.Services.AddScoped<IStudentService, StudentService>();
 
 // JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("Jwt");

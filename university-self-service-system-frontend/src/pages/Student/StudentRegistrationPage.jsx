@@ -1,117 +1,223 @@
 // src/pages/StudentRegistrationPage.jsx
 import { useState, useEffect } from 'react';
-import axiosClient from "../../api/axiosClient.js"; // For talking to the .NET backend
-// import { useAuth } from '../context/AuthContext'; // Might need this later for user details
+import axiosClient from "../../api/axiosClient.js";
+import { useAuth } from '../../context/AuthContext.jsx';
 
 export default function StudentRegistrationPage() {
+    const { user } = useAuth();
 
-    // State to hold the list of courses retrieved from the backend
-    const [availableCourses, setAvailableCourses] = useState([]);
-
-    // State to track which courses the student has selected to enroll in
-    const [selectedCourses, setSelectedCourses] = useState([]);
-
+    const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [notif, setNotif] = useState(null); // { type: 'success'|'error', message }
+    const [registering, setRegistering] = useState({}); // map courseId -> boolean
 
-    // Placeholder data fetching function
+    // Helper: decode JWT to extract numeric sub (user id)
+    const getStudentIdFromToken = () => {
+        const token = user?.token ?? localStorage.getItem('token');
+        if (!token) return null;
+        try {
+            const parts = token.split('.');
+            if (parts.length < 2) return null;
+            const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+            // sub expected to be string id
+            const sub = payload.sub ?? payload.userId ?? payload.id;
+            return sub ? parseInt(sub, 10) : null;
+        } catch (e) {
+            console.error('Failed to decode token', e);
+            return null;
+        }
+    };
+
     useEffect(() => {
         const fetchCourses = async () => {
+            setLoading(true);
+            setError(null);
             try {
-                // 1. Set loading state
-                setLoading(true);
+                const res = await axiosClient.get('/CourseFactory');
+                const data = res.data ?? [];
 
-                // 2. Call the .NET backend API endpoint to get courses
-                // NOTE: You will need to create this endpoint in your .NET project (e.g., /Courses/Available)
-                const response = await axiosClient.get("/Courses/Available");
+                const normalized = data.map(c => ({
+                    // accept many possible property names (Id, id, CourseId ...)
+                    id: c.id ?? c.Id ?? c.courseId ?? c.CourseId ?? null,
+                    title: c.title ?? c.Title ?? c.Title ?? c.title ?? c.CourseTitle ?? c.courseTitle ?? '',
+                    code: c.courseCode ?? c.code ?? c.CourseCode ?? c.Code ?? '',
+                    instructor: c.professorName ?? c.instructorName ?? c.instructor ?? 'TBA',
+                    capacity: c.capacity ?? c.Capacity ?? 0,
+                    enrolledStudents: c.enrolledStudents ?? c.EnrolledStudents ?? c.enrolledStudentsList ?? [],
+                    raw: c
+                }));
 
-                // Assuming your backend returns an array of course objects
-                setAvailableCourses(response.data);
-
+                setCourses(normalized);
             } catch (err) {
-                setError("Failed to load available courses. Please check the network.");
+                console.error(err);
+                setError('Failed to load available courses. Please check the network.');
             } finally {
                 setLoading(false);
             }
         };
 
         fetchCourses();
-    }, []); // Run only once on component mount
+    }, []);
 
-
-    // Function to handle toggling course selection
-    const handleCourseSelection = (courseId) => {
-        setSelectedCourses(prevSelected =>
-            prevSelected.includes(courseId)
-                ? prevSelected.filter(id => id !== courseId) // Remove if already selected
-                : [...prevSelected, courseId]                // Add if not selected
-        );
+    const isStudentEnrolled = (course) => {
+        return (course.enrolledStudents && course.enrolledStudents.length > 0) &&
+            course.enrolledStudents.some(s => {
+                const sid = getStudentIdFromToken();
+                if (sid && (s.studentId === sid || s.StudentId === sid)) return true;
+                const username = user?.username ?? localStorage.getItem('username');
+                if (!username) return false;
+                return (s.name === username || s.Name === username || s.name === s.Name);
+            });
     };
 
-
-    // Function to handle the final registration submission
-    const handleRegister = async () => {
-        // ... Logic to send 'selectedCourses' array to the .NET backend ...
-        console.log("Attempting to register for courses:", selectedCourses);
-        // ... (This logic will be more detailed later)
+    const extractNumericCourseId = (course) => {
+        // Try normalized id first
+        let cid = course.id ?? course.raw?.id ?? course.raw?.Id ?? course.raw?.CourseId ?? course.raw?.courseId ?? null;
+        if (cid === null || cid === undefined) return null;
+        // If it's a string number, convert
+        if (typeof cid === 'string') {
+            const n = parseInt(cid, 10);
+            return Number.isFinite(n) ? n : null;
+        }
+        if (typeof cid === 'number') return cid;
+        return null;
     };
 
+    const handleRegister = async (course) => {
+        setNotif(null);
+        // log full course for debugging
+        console.log('Attempting register for course object:', course);
 
-    if (loading) return <div style={{ color: '#cccccc' }}>Loading courses...</div>;
-    if (error) return <div style={{ color: '#ff8080' }}>Error: {error}</div>;
+        const courseIdRaw = extractNumericCourseId(course);
+        console.log('Resolved courseId:', courseIdRaw);
+
+        if (!courseIdRaw) {
+            setNotif({ type: 'error', message: 'Course not found (invalid identifier). Please refresh the page.' });
+            return;
+        }
+
+        const studentId = getStudentIdFromToken();
+        if (!studentId) {
+            setNotif({ type: 'error', message: 'Student not identified. Please login again.' });
+            return;
+        }
+
+        setRegistering(prev => ({ ...prev, [courseIdRaw]: true }));
+
+        try {
+            const url = `/Student/${studentId}/register`;
+            const payload = { CourseId: courseIdRaw };
+            console.log('POST', url, payload);
+
+            const res = await axiosClient.post(url, payload);
+            console.log('Register response:', res);
+
+            const courseName = course.title || course.raw?.title || course.raw?.CourseTitle || course.code;
+            setNotif({ type: 'success', message: `? Successfully registered for ${courseName}!` });
+
+            setCourses(prev => prev.map(c => {
+                const cid = extractNumericCourseId(c) ?? null;
+                if (cid === courseIdRaw) {
+                    const newEnrolled = (c.enrolledStudents || []).concat([{ studentId }]);
+                    return { ...c, enrolledStudents: newEnrolled };
+                }
+                return c;
+            }));
+
+        } catch (err) {
+            console.error('Register failed', err);
+            // show full server response body if available
+            const serverBody = err?.response?.data;
+            console.error('Server response body:', serverBody);
+            let msg = 'Failed to register.';
+            if (serverBody) {
+                // try multiple common fields
+                msg = serverBody.message ?? serverBody.Message ?? serverBody.details ?? JSON.stringify(serverBody);
+            } else if (err.message) {
+                msg = err.message;
+            }
+            setNotif({ type: 'error', message: `? ${msg} (status ${err?.response?.status ?? 'unknown'})` });
+        } finally {
+            setRegistering(prev => ({ ...prev, [courseIdRaw]: false }));
+        }
+    };
+
+    if (loading) return (
+        <div style={{ padding: 24, color: '#e5e7eb' }}>
+            <div>Loading courses...</div>
+        </div>
+    );
+
+    if (error) return (
+        <div style={{ padding: 24, color: '#ff8080', textAlign: 'center' }}>
+            <div>?? {error}</div>
+        </div>
+    );
 
     return (
-        <div>
-            <h2>Course Registration - Available Semester Courses</h2>
+        <div style={{ color: '#e5e7eb' }}>
+            <h2 style={{ marginTop: 0, marginBottom: 16 }}>Course Registration</h2>
 
-            <div style={{ marginBottom: '2rem', padding: '1rem', border: '1px solid #333333' }}>
-                <h3>Selected Courses ({selectedCourses.length})</h3>
-                {/* Placeholder to show selected courses summary */}
-                <p>{selectedCourses.length > 0 ? selectedCourses.join(', ') : 'No courses selected yet.'}</p>
-                <button
-                    onClick={handleRegister}
-                    disabled={selectedCourses.length === 0}
-                    style={{
-                        backgroundColor: selectedCourses.length > 0 ? '#007bff' : '#333333',
-                        color: 'white',
-                        padding: '0.75rem 1.5rem',
-                        border: 'none',
-                        cursor: selectedCourses.length > 0 ? 'pointer' : 'not-allowed'
-                    }}
-                >
-                    Submit Registration
-                </button>
-            </div>
+            {notif && (
+                <div style={{
+                    marginBottom: 12,
+                    padding: '10px 14px',
+                    borderRadius: 8,
+                    background: notif.type === 'success' ? 'rgba(16,185,129,0.12)' : 'rgba(255,77,77,0.08)',
+                    color: notif.type === 'success' ? '#10b981' : '#ff6b6b'
+                }}>{notif.message}</div>
+            )
 
-            <div className="course-list">
-                {/* This is where the list of courses will be mapped */}
-                {availableCourses.length === 0 ? (
-                    <p>No courses are currently available for registration.</p>
-                ) : (
-                    availableCourses.map(course => (
-                        <div key={course.id} style={{
-                            backgroundColor: '#333333',
-                            padding: '1rem',
-                            marginBottom: '1rem',
-                            borderRadius: '4px',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center'
-                        }}>
-                            <div>
-                                <h4>{course.name} ({course.code})</h4>
-                                <p>Instructor: {course.instructor}</p>
+            }
+            {courses.length === 0 ? (
+                <div style={{ color: '#e5e7eb' }}>No courses available for registration.</div>
+            ) : (
+                <div style={{ display: 'grid', gap: 12 }}>
+                    {courses.map((course, idx) => {
+                        const enrolled = course.enrolledStudents || [];
+                        const enrolledCount = enrolled.length;
+                        const capacity = course.capacity ?? course.raw?.capacity ?? 0;
+                        const seatsLeftText = capacity > 0 ? `${enrolledCount}/${capacity} enrolled` : `${enrolledCount} enrolled`;
+                        const cid = extractNumericCourseId(course) ?? idx;
+                        const already = isStudentEnrolled(course);
+                        return (
+                            <div key={cid} style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                padding: 14,
+                                background: '#0f0f10',
+                                borderRadius: 8,
+                                border: '1px solid rgba(255,255,255,0.03)'
+                            }}>
+                                <div>
+                                    <div style={{ fontWeight: 700 }}>{course.title} <span style={{ color: '#9aa6b2', fontWeight: 500 }}>({course.code})</span></div>
+                                    <div style={{ color: '#9aa6b2', marginTop: 6 }}>Instructor: {course.instructor}</div>
+                                    <div style={{ color: '#9aa6b2', marginTop: 6 }}>{seatsLeftText}</div>
+                                </div>
+
+                                <div>
+                                    <button
+                                        onClick={() => handleRegister(course)}
+                                        disabled={already || registering[cid] || (capacity > 0 && enrolledCount >= capacity)}
+                                        style={{
+                                            background: already ? 'transparent' : '#2b6cff',
+                                            color: already ? '#9aa6b2' : 'white',
+                                            border: already ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                                            padding: '0.6rem 0.9rem',
+                                            borderRadius: 8,
+                                            cursor: already ? 'default' : 'pointer'
+                                        }}
+                                    >
+                                        {registering[cid] ? 'Registering...' : (already ? 'Registered' : (capacity > 0 && enrolledCount >= capacity ? 'Full' : 'Register'))}
+                                    </button>
+                                </div>
                             </div>
-                            <input
-                                type="checkbox"
-                                checked={selectedCourses.includes(course.id)}
-                                onChange={() => handleCourseSelection(course.id)}
-                                style={{ width: '20px', height: '20px' }} // Simple checkbox style
-                            />
-                        </div>
-                    ))
-                )}
-            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 }
