@@ -44,6 +44,7 @@ export default function StudentCoursesPage() {
                     title: c.courseTitle ?? c.CourseTitle ?? c.title ?? c.Title ?? 'Untitled',
                     code: c.courseCode ?? c.CourseCode ?? c.code ?? c.Code ?? '',
                     instructor: c.instructorName ?? c.InstructorName ?? c.instructor ?? 'TBA',
+                    // keep dates in data model but do not display them in UI
                     startDate: c.startDate ?? c.StartDate ?? null,
                     endDate: c.endDate ?? c.EndDate ?? null
                 }));
@@ -75,8 +76,6 @@ export default function StudentCoursesPage() {
                     <div key={c.enrollmentId ?? c.courseId} style={{ background: '#0f0f10', padding: 14, borderRadius: 8, border: '1px solid rgba(255,255,255,0.03)', color: '#e5e7eb' }}>
                         <div style={{ fontWeight: 700 }}>{c.title} <span style={{ color: '#9aa6b2', fontWeight: 500 }}>({c.code})</span></div>
                         <div style={{ color: '#9aa6b2', marginTop: 6 }}>Instructor: {c.instructor}</div>
-                        {c.startDate && <div style={{ color: '#9aa6b2', marginTop: 6 }}>Starts: {new Date(c.startDate).toLocaleDateString()}</div>}
-                        {c.endDate && <div style={{ color: '#9aa6b2', marginTop: 6 }}>Ends: {new Date(c.endDate).toLocaleDateString()}</div>}
                     </div>
                 ))}
             </div>
