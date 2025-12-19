@@ -1,0 +1,183 @@
+# CI Pipeline for University Self-Service System
+# This workflow runs on every push and pull request to build and validate the code
+
+name: CI Build
+
+# When to run this workflow
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  # ============================================
+  # JOB 1: Build the ASP.NET Core Backend
+  # ============================================
+  build-backend:
+    name: Build Backend (.NET 9)
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./University Self Service System - Backend
+
+    steps:
+      # Step 1: Checkout the code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Setup .NET 9 SDK
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      # Step 3: Restore NuGet packages
+      - name: Restore dependencies
+        run: dotnet restore
+
+      # Step 4: Build the project
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      # Step 5: Run tests (if you have test projects)
+      # Uncomment this when you add unit tests
+      # - name: Run tests
+      #   run: dotnet test --no-build --configuration Release --verbosity normal
+
+  # ============================================
+  # JOB 2: Build the React Frontend
+  # ============================================
+  build-frontend:
+    name: Build Frontend (React/Vite)
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./university-self-service-system-frontend
+
+    steps:
+      # Step 1: Checkout the code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: './university-self-service-system-frontend/package-lock.json'
+
+      # Step 3: Install npm dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # Step 4: Run linter (optional - checks code quality)
+      - name: Lint
+        run: npm run lint --if-present
+        continue-on-error: true
+
+      # Step 5: Build for production
+      - name: Build
+        run: npm run build
+
+      # Step 6: Upload build artifacts (optional - saves the built files)
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: ./university-self-service-system-frontend/dist
+          retention-days: 7# CI Pipeline for University Self-Service System
+# This workflow runs on every push and pull request to build and validate the code
+
+name: CI Build
+
+# When to run this workflow
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  # ============================================
+  # JOB 1: Build the ASP.NET Core Backend
+  # ============================================
+  build-backend:
+    name: Build Backend (.NET 9)
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./University Self Service System - Backend
+
+    steps:
+      # Step 1: Checkout the code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Setup .NET 9 SDK
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      # Step 3: Restore NuGet packages
+      - name: Restore dependencies
+        run: dotnet restore
+
+      # Step 4: Build the project
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      # Step 5: Run tests (if you have test projects)
+      # Uncomment this when you add unit tests
+      # - name: Run tests
+      #   run: dotnet test --no-build --configuration Release --verbosity normal
+
+  # ============================================
+  # JOB 2: Build the React Frontend
+  # ============================================
+  build-frontend:
+    name: Build Frontend (React/Vite)
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./university-self-service-system-frontend
+
+    steps:
+      # Step 1: Checkout the code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: './university-self-service-system-frontend/package-lock.json'
+
+      # Step 3: Install npm dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # Step 4: Run linter (optional - checks code quality)
+      - name: Lint
+        run: npm run lint --if-present
+        continue-on-error: true
+
+      # Step 5: Build for production
+      - name: Build
+        run: npm run build
+
+      # Step 6: Upload build artifacts (optional - saves the built files)
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: ./university-self-service-system-frontend/dist
+          retention-days: 7
