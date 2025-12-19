@@ -1,0 +1,56 @@
+@startuml State Diagram - Course
+!theme plain
+
+title Course Entity - State Diagram
+
+[*] --> Draft : Admin creates course
+
+state Draft {
+    Draft : Course created
+    Draft : No professor assigned
+    Draft : Not visible to students
+}
+
+Draft --> Active : Assign professor\nand publish
+
+state Active {
+    Active : Course is available
+    Active : Students can enroll
+    
+    state "Enrollment Open" as EnrollOpen
+    state "Enrollment Closed" as EnrollClosed
+    state "In Progress" as InProgress
+    
+    [*] --> EnrollOpen
+    EnrollOpen : Before start date
+    EnrollOpen --> InProgress : Start date reached
+    InProgress : Classes ongoing
+    InProgress : Enrollment closed
+    EnrollOpen --> EnrollClosed : Manual close
+    EnrollClosed --> InProgress : Start date reached
+}
+
+Active --> Completed : End date reached
+
+state Completed {
+    Completed : Course finished
+    Completed : Grades can be assigned
+    Completed : No new enrollments
+}
+
+Draft --> Deleted : Admin deletes
+Active --> Deleted : Admin deletes\n(cascade enrollments)
+Completed --> Archived : Archive course
+
+state Archived {
+    Archived : Historical record
+    Archived : Read-only
+}
+
+Deleted --> [*]
+Archived --> [*]
+
+Draft --> Draft : Update details
+Active --> Active : Update details
+
+@enduml

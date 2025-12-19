@@ -1,0 +1,83 @@
+@startuml Sequence Diagram - Student Registration
+!theme plain
+
+title Student Registration (Sign Up) Sequence Diagram
+
+actor User
+participant "Login Page\n(React)" as Frontend
+participant "axiosClient" as Axios
+participant "AuthController\n(API)" as Controller
+participant "AuthService" as Service
+database "Database" as DB
+
+User -> Frontend : Click "Sign up"
+Frontend -> User : Show registration modal
+
+User -> Frontend : Fill registration form
+note right of User
+  - Username
+  - Full Name
+  - Email
+  - Password
+  - Role (Student)
+  - Phone Number
+  - Major
+  - Date of Birth
+end note
+
+User -> Frontend : Click "Create Account"
+
+Frontend -> Frontend : Validate form
+alt Passwords match and required fields filled
+    
+    Frontend -> Axios : POST /api/Auth/register
+    activate Axios
+    
+    Axios -> Controller : RegisterDto
+    activate Controller
+    
+    Controller -> Service : RegisterUser(dto)
+    activate Service
+    
+    Service -> DB : Check if username exists
+    activate DB
+    DB --> Service : Result
+    deactivate DB
+    
+    alt Username available
+        Service -> Service : Hash password
+        
+        Service -> DB : Create User record
+        activate DB
+        DB --> Service : User created
+        deactivate DB
+        
+        Service -> DB : Create Student record
+        activate DB
+        DB --> Service : Student created
+        deactivate DB
+        
+        Service --> Controller : Success response
+        deactivate Service
+        
+        Controller --> Axios : 200 OK
+        deactivate Controller
+        
+        Axios --> Frontend : Success
+        deactivate Axios
+        
+        Frontend -> Frontend : Auto-login user
+        Frontend -> User : Redirect to /student
+        
+    else Username taken
+        Service --> Controller : Error
+        Controller --> Axios : 400 Bad Request
+        Axios --> Frontend : Error response
+        Frontend -> User : Show "Username taken" error
+    end
+    
+else Validation fails
+    Frontend -> User : Show validation errors
+end
+
+@enduml

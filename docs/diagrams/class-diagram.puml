@@ -1,0 +1,180 @@
+@startuml Class Diagram
+!theme plain
+
+title University Self-Service System - Class Diagram
+
+' Entities Package
+package "Entities" {
+    
+    class User {
+        +int Id
+        +string Username
+        +string FullName
+        +string Email
+        +string PasswordHash
+        +string Role
+    }
+    
+    class Student {
+        +int Id
+        +int UserId
+        +string Name
+        +string FullName
+        +DateTime? DateOfBirth
+        +string Email
+        +string PhoneNumber
+        +string Major
+        +ICollection<Enrollment> Enrollments
+    }
+    
+    class Professor {
+        +int Id
+        +int UserId
+        +string Name
+        +string FullName
+        +string Email
+        +string PhoneNumber
+        +string Department
+        +ICollection<Course> Courses
+    }
+    
+    class Course {
+        +int Id
+        +string Code
+        +string Title
+        +int CreditHours
+        +int? ProfessorId
+        +string InstructorName
+        +DateTime StartDate
+        +DateTime EndDate
+        +ICollection<Enrollment> Enrollments
+    }
+    
+    class Enrollment {
+        +int Id
+        +int StudentId
+        +int CourseId
+        +double? Grade
+        +DateTime EnrolledAt
+    }
+}
+
+' DTOs Package
+package "DTOs" {
+    
+    class CreateProfessorDto {
+        +string Name
+        +string Email
+        +string Department
+    }
+    
+    class RViewProfessorDto {
+        +int Id
+        +string Name
+        +string Email
+        +string Department
+        +int CourseCount
+        +bool ProfessorNotFound
+    }
+    
+    class RDeleteProfessorDto {
+        +bool Success
+        +bool ProfessorNotFound
+    }
+    
+    class CreateCourseDto {
+        +string Code
+        +string Title
+        +int CreditHours
+        +string InstructorName
+        +DateTime StartDate
+        +DateTime EndDate
+    }
+    
+    class RCreatedCourseDto {
+        +int Id
+        +string Code
+        +string Title
+        +bool Success
+    }
+}
+
+' Services Package
+package "Services" {
+    
+    interface IProfManagementService {
+        +Task<RCreatedProfessorDto> CreateProfessor(CreateProfessorDto)
+        +Task<RUpdateProfessorDto> UpdateProfessor(UpdateProfessorDto)
+        +Task<List<RViewProfessorDto>> ViewProfessors()
+        +Task<RViewProfessorDto> ViewProfessorById(int)
+        +Task<RDeleteProfessorDto> DeleteProfessor(DeleteProfessorDto)
+    }
+    
+    interface ICourseService {
+        +Task<RCreatedCourseDto> CreateCourse(CreateCourseDto)
+        +Task<List<RviewCourseDto>> ViewCourses()
+        +Task<RupdateCourse> UpdateCourse(updateCourseDto)
+        +Task<RdeleteCourseDto> DeleteCourse(deleteCourseDto)
+    }
+    
+    class ProfManagementService {
+        -AppDbContext _context
+        -IMapper _mapper
+    }
+    
+    class CourseService {
+        -AppDbContext _context
+        -IMapper _mapper
+    }
+}
+
+' Controllers Package
+package "Controllers" {
+    
+    class ProfManagementController {
+        -IProfManagementService _service
+        +Task<IActionResult> CreateProfessor(CreateProfessorDto)
+        +Task<IActionResult> UpdateProfessor(UpdateProfessorDto)
+        +Task<IActionResult> ViewProfessors()
+        +Task<IActionResult> ViewProfessorById(int)
+        +Task<IActionResult> DeleteProfessor(DeleteProfessorDto)
+    }
+    
+    class CourseController {
+        -ICourseService _service
+        +Task<IActionResult> CreateCourse(CreateCourseDto)
+        +Task<IActionResult> GetCourses()
+        +Task<IActionResult> UpdateCourse(updateCourseDto)
+        +Task<IActionResult> DeleteCourse(deleteCourseDto)
+    }
+    
+    class AuthController {
+        -IAuthService _service
+        +Task<IActionResult> Login(LoginDto)
+        +Task<IActionResult> Register(RegisterDto)
+        +Task<IActionResult> Logout()
+    }
+}
+
+' Relationships - Entities
+User "1" -- "0..1" Student : has
+User "1" -- "0..1" Professor : has
+Student "1" -- "*" Enrollment : has
+Course "1" -- "*" Enrollment : has
+Professor "1" -- "*" Course : teaches
+
+' Relationships - Services
+IProfManagementService <|.. ProfManagementService
+ICourseService <|.. CourseService
+
+' Relationships - Controllers to Services
+ProfManagementController --> IProfManagementService : uses
+CourseController --> ICourseService : uses
+
+' DTOs relationships
+ProfManagementController ..> CreateProfessorDto : receives
+ProfManagementController ..> RViewProfessorDto : returns
+CourseController ..> CreateCourseDto : receives
+CourseController ..> RCreatedCourseDto : returns
+
+@enduml

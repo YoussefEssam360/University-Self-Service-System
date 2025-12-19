@@ -1,0 +1,68 @@
+@startuml Sequence Diagram - Login
+!theme plain
+
+title Login Sequence Diagram
+
+actor User
+participant "Login Page\n(React)" as Frontend
+participant "AuthContext" as Context
+participant "axiosClient" as Axios
+participant "AuthController\n(API)" as Controller
+participant "AuthService" as Service
+database "Database" as DB
+
+User -> Frontend : Enter credentials
+User -> Frontend : Click "Login"
+
+Frontend -> Context : login(username, password)
+activate Context
+
+Context -> Axios : POST /api/Auth/login
+activate Axios
+
+Axios -> Controller : LoginDto
+activate Controller
+
+Controller -> Service : ValidateUser(dto)
+activate Service
+
+Service -> DB : Query User by Username
+activate DB
+DB --> Service : User record
+deactivate DB
+
+alt User found and password valid
+    Service --> Controller : AuthResponseDto (success)
+    deactivate Service
+    
+    Controller --> Axios : 200 OK + { token, role, userId }
+    deactivate Controller
+    
+    Axios --> Context : Response data
+    deactivate Axios
+    
+    Context -> Context : Store token in localStorage
+    Context -> Context : Update user state
+    
+    Context --> Frontend : { ok: true }
+    deactivate Context
+    
+    Frontend -> Frontend : Navigate based on role
+    
+    alt Role = Admin
+        Frontend -> User : Redirect to /admin
+    else Role = Student
+        Frontend -> User : Redirect to /student
+    else Role = Professor
+        Frontend -> User : Redirect to /professor
+    end
+    
+else User not found or invalid password
+    Service --> Controller : null
+    Controller --> Axios : 401 Unauthorized
+    Axios --> Context : Error response
+    Context --> Frontend : { ok: false, message }
+    Frontend -> User : Display error message
+end
+
+@enduml

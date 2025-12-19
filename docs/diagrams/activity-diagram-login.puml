@@ -1,0 +1,55 @@
+@startuml Activity Diagram - Login
+!theme plain
+
+title Login Process - Activity Diagram
+
+start
+
+:User opens application;
+
+:Display Login page;
+
+:User enters username and password;
+
+:User clicks Login button;
+
+if (Fields empty?) then (yes)
+    :Show validation error;
+    stop
+else (no)
+endif
+
+:Send credentials to API;
+
+:API validates credentials;
+
+if (User exists?) then (yes)
+    if (Password correct?) then (yes)
+        :Generate auth token;
+        :Store token in localStorage;
+        :Store user data in AuthContext;
+        
+        switch (User Role?)
+        case (Admin)
+            :Navigate to /admin;
+        case (Student)
+            :Navigate to /student;
+        case (Professor)
+            :Navigate to /professor;
+        endswitch
+        
+        :Display Dashboard;
+        stop
+        
+    else (no)
+        :Return 401 Unauthorized;
+        :Display "Invalid credentials";
+        stop
+    endif
+else (no)
+    :Return 401 Unauthorized;
+    :Display "User not found";
+    stop
+endif
+
+@enduml

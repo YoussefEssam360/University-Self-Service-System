@@ -1,0 +1,66 @@
+@startuml State Diagram - Enrollment
+!theme plain
+
+title Enrollment - State Diagram
+
+[*] --> Pending : Student requests enrollment
+
+state Pending {
+    Pending : Enrollment requested
+    Pending : Awaiting confirmation
+}
+
+Pending --> Enrolled : Auto-approved /\nAdmin approves
+
+state Enrolled {
+    Enrolled : Student in course
+    Enrolled : EnrolledAt timestamp set
+    Enrolled : Grade = null
+    
+    [*] --> Attending
+    
+    state Attending {
+        Attending : Student active in course
+    }
+}
+
+Enrolled --> Graded : Professor assigns grade
+
+state Graded {
+    Graded : Grade assigned
+    Graded : Grade != null
+    
+    state "Passing" as Pass
+    state "Failing" as Fail
+    
+    [*] --> Pass : Grade >= passing
+    [*] --> Fail : Grade < passing
+}
+
+Graded --> Graded : Grade updated
+
+Enrolled --> Dropped : Student drops course
+Pending --> Cancelled : Student cancels
+
+state Dropped {
+    Dropped : Student left course
+    Dropped : Before completion
+}
+
+state Cancelled {
+    Cancelled : Enrollment cancelled
+    Cancelled : Before confirmation
+}
+
+Graded --> Completed : Course ends
+
+state Completed {
+    Completed : Final record
+    Completed : Appears in transcript
+}
+
+Dropped --> [*]
+Cancelled --> [*]
+Completed --> [*]
+
+@enduml

@@ -1,0 +1,72 @@
+@startuml Activity Diagram - Student Registration
+!theme plain
+
+title Student Registration (Sign Up) - Activity Diagram
+
+start
+
+:User opens Login page;
+
+:User clicks "Sign up" button;
+
+:Display registration modal;
+
+:User selects "Student" role;
+
+:Show student-specific fields;
+
+:User fills registration form;
+note right
+  Required fields:
+  - Username
+  - Full Name
+  - Email
+  - Password
+  - Phone Number
+  - Major
+  - Date of Birth
+end note
+
+:User clicks "Create Account";
+
+if (All required fields filled?) then (yes)
+    if (Passwords match?) then (yes)
+        :Send RegisterDto to API;
+        
+        :AuthController receives request;
+        
+        :AuthService processes registration;
+        
+        if (Username available?) then (yes)
+            :Hash password;
+            
+            fork
+                :Create User record;
+            fork again
+                :Create Student record;
+            end fork
+            
+            :Save to database;
+            
+            :Return success;
+            
+            :Auto-login user;
+            
+            :Navigate to /student;
+            
+            stop
+        else (no)
+            :Return error;
+            :Display "Username already taken";
+            stop
+        endif
+    else (no)
+        :Display "Passwords do not match";
+        stop
+    endif
+else (no)
+    :Display validation errors;
+    stop
+endif
+
+@enduml

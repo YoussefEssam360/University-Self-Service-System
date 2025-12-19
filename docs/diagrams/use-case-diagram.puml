@@ -1,0 +1,93 @@
+@startuml Use Case Diagram
+!theme plain
+skinparam actorStyle awesome
+
+title University Self-Service System - Use Case Diagram
+
+left to right direction
+
+' Actors
+actor "Student" as student
+actor "Administrator" as admin
+actor "Professor" as professor
+
+' System boundary
+rectangle "University Self-Service System" {
+    
+    ' Authentication Use Cases
+    package "Authentication" {
+        usecase "Login" as UC_LOGIN
+        usecase "Logout" as UC_LOGOUT
+        usecase "Register Account" as UC_REGISTER
+    }
+    
+    ' Student Use Cases
+    package "Student Portal" {
+        usecase "View Dashboard" as UC_STU_DASH
+        usecase "Update Profile" as UC_STU_PROFILE
+        usecase "View Enrolled Courses" as UC_STU_COURSES
+        usecase "View Grades" as UC_STU_GRADES
+        usecase "Enroll in Course" as UC_STU_ENROLL
+    }
+    
+    ' Admin Use Cases
+    package "Admin Management" {
+        usecase "View Admin Dashboard" as UC_ADM_DASH
+        usecase "Manage Courses" as UC_ADM_COURSES
+        usecase "Manage Professors" as UC_ADM_PROFS
+        usecase "Manage Students" as UC_ADM_STUDENTS
+    }
+    
+    ' Course Management Sub-cases
+    usecase "Create Course" as UC_CREATE_COURSE
+    usecase "Update Course" as UC_UPDATE_COURSE
+    usecase "Delete Course" as UC_DELETE_COURSE
+    usecase "View All Courses" as UC_VIEW_COURSES
+    usecase "Assign Professor" as UC_ASSIGN_PROF
+    
+    ' Professor Management Sub-cases
+    usecase "Create Professor" as UC_CREATE_PROF
+    usecase "Update Professor" as UC_UPDATE_PROF
+    usecase "Delete Professor" as UC_DELETE_PROF
+    usecase "View All Professors" as UC_VIEW_PROFS
+}
+
+' Student relationships
+student --> UC_LOGIN
+student --> UC_LOGOUT
+student --> UC_REGISTER
+student --> UC_STU_DASH
+student --> UC_STU_PROFILE
+student --> UC_STU_COURSES
+student --> UC_STU_GRADES
+student --> UC_STU_ENROLL
+
+' Admin relationships
+admin --> UC_LOGIN
+admin --> UC_LOGOUT
+admin --> UC_ADM_DASH
+admin --> UC_ADM_COURSES
+admin --> UC_ADM_PROFS
+admin --> UC_ADM_STUDENTS
+
+' Professor relationships
+professor --> UC_LOGIN
+professor --> UC_LOGOUT
+professor --> UC_REGISTER
+
+' Include relationships
+UC_ADM_COURSES ..> UC_CREATE_COURSE : <<include>>
+UC_ADM_COURSES ..> UC_UPDATE_COURSE : <<include>>
+UC_ADM_COURSES ..> UC_DELETE_COURSE : <<include>>
+UC_ADM_COURSES ..> UC_VIEW_COURSES : <<include>>
+UC_ADM_COURSES ..> UC_ASSIGN_PROF : <<include>>
+
+UC_ADM_PROFS ..> UC_CREATE_PROF : <<include>>
+UC_ADM_PROFS ..> UC_UPDATE_PROF : <<include>>
+UC_ADM_PROFS ..> UC_DELETE_PROF : <<include>>
+UC_ADM_PROFS ..> UC_VIEW_PROFS : <<include>>
+
+' Extend relationships
+UC_STU_ENROLL ..> UC_VIEW_COURSES : <<extend>>
+
+@enduml
