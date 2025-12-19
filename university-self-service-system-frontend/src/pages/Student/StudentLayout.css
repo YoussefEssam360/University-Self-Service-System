@@ -1,0 +1,112 @@
+.student-root {
+  min-height: 100vh;           /* full viewport height */
+  display: flex;
+  flex-direction: column;      /* header on top, content fills below */
+  margin: 0;                   /* remove default page margins */
+  background: #121212;         /* dark background for whole layout */
+  color: #e5e7eb;             /* default text color on dark bg */
+  box-sizing: border-box;
+}
+
+.student-root * {
+  box-sizing: inherit;
+}
+
+/* Sticky header */
+.student-header {
+  width: 100%;
+  background: linear-gradient(180deg, #141414, #1a1a1a);
+  color: #fff;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  padding: 0.6rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 50;
+}
+.student-header.sticky {
+  position: sticky;
+  top: 0;
+  backdrop-filter: blur(6px);
+}
+
+.student-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #9ac8ff;
+}
+
+.student-nav {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.85rem;
+  color: #e5e7eb;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all 160ms ease-in-out;
+  font-weight: 500;
+}
+
+.nav-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(15, 60, 255, 0.06);
+}
+
+.nav-item.active {
+  font-weight: 700;
+  color: #bfe1ff;
+  border-bottom: 3px solid #0b5cff;
+  background: rgba(11,92,255,0.04);
+}
+
+.nav-icon {
+  font-size: 0.95rem;
+}
+
+.student-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.user-name {
+  color: #eaeef8;
+  font-weight: 600;
+}
+
+.btn-logout {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.06);
+  color: #e5e7eb;
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.student-content {
+  flex: 1 1 auto;            /* fill remaining height */
+  padding: 1.5rem;          /* inner spacing */
+  background: #121212;      /* dark content background */
+  color: #e5e7eb;
+  overflow-y: auto;
+}
+
+/* ensure root elements fill height */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  background: #000; /* safe default */
+}

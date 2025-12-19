@@ -3,6 +3,7 @@
     public class RviewCourseDto
     {
         // These are the core identification and display fields
+        public int Id { get; set; }
         public string CourseCode { get; set; }   // Maps to Entity.Code
         public string Title { get; set; }
 
@@ -16,5 +17,7 @@
 
         // List of enrolled students for admin/student pages
         public List<StudentInCourseDto> EnrolledStudents { get; set; } = new();
+
+        public int Capacity { get; set; }
     }
 }
