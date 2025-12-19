@@ -1,0 +1,78 @@
+@startuml State Diagram - User Session
+!theme plain
+
+title User Session - State Diagram
+
+[*] --> Unauthenticated : App loaded
+
+state Unauthenticated {
+    [*] --> LoginPage
+    LoginPage : User views login form
+    LoginPage --> SignUpModal : Click "Sign up"
+    SignUpModal --> LoginPage : Close modal
+    SignUpModal --> LoginPage : Registration complete
+}
+
+Unauthenticated --> Authenticating : Submit credentials
+
+state Authenticating {
+    [*] --> ValidatingCredentials
+    ValidatingCredentials : API validates user
+    ValidatingCredentials --> AuthSuccess : Valid
+    ValidatingCredentials --> AuthFailed : Invalid
+    AuthFailed --> [*]
+}
+
+Authenticating --> Unauthenticated : Auth failed
+
+Authenticating --> Authenticated : Auth success
+
+state Authenticated {
+    [*] --> DetermineRole
+    
+    DetermineRole --> StudentSession : Role = Student
+    DetermineRole --> AdminSession : Role = Admin
+    DetermineRole --> ProfessorSession : Role = Professor
+    
+    state StudentSession {
+        [*] --> StudentDashboard
+        StudentDashboard --> Registration
+        StudentDashboard --> ViewCourses
+        StudentDashboard --> ViewGrades
+        Registration --> StudentDashboard
+        ViewCourses --> StudentDashboard
+        ViewGrades --> StudentDashboard
+    }
+    
+    state AdminSession {
+        [*] --> AdminDashboard
+        AdminDashboard --> CourseManagement
+        AdminDashboard --> ProfessorManagement
+        AdminDashboard --> StudentManagement
+        CourseManagement --> AdminDashboard
+        ProfessorManagement --> AdminDashboard
+        StudentManagement --> AdminDashboard
+    }
+    
+    state ProfessorSession {
+        [*] --> ProfessorDashboard
+        ProfessorDashboard : Future implementation
+    }
+}
+
+Authenticated --> LoggingOut : Click Logout
+
+state LoggingOut {
+    [*] --> ClearingSession
+    ClearingSession : Clear localStorage
+    ClearingSession : Clear AuthContext
+    ClearingSession --> [*]
+}
+
+LoggingOut --> Unauthenticated : Session cleared
+
+Authenticated --> SessionExpired : Token expired
+
+SessionExpired --> Unauthenticated : Redirect to login
+
+@enduml

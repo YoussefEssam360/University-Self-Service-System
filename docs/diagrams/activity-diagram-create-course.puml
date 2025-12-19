@@ -1,0 +1,58 @@
+@startuml Activity Diagram - Create Course
+!theme plain
+
+title Create Course Process - Activity Diagram
+
+start
+
+:Admin navigates to Course Management;
+
+:Click "Add Course" button;
+
+:Display course creation form;
+
+:Admin fills in course details;
+note right
+  - Course Code
+  - Title
+  - Credit Hours
+  - Instructor Name
+  - Start Date
+  - End Date
+end note
+
+:Admin clicks "Create";
+
+if (Required fields filled?) then (yes)
+    :Send CreateCourseDto to API;
+    
+    :CourseController receives request;
+    
+    :CourseService processes request;
+    
+    :AutoMapper maps DTO to Entity;
+    
+    if (Course code unique?) then (yes)
+        :Save Course to database;
+        
+        :Map Entity to RCreatedCourseDto;
+        
+        :Return success response;
+        
+        :Update course list in UI;
+        
+        :Display success message;
+        
+        stop
+    else (no)
+        :Return error response;
+        :Display "Course code already exists";
+        stop
+    endif
+else (no)
+    :Highlight missing fields;
+    :Display validation errors;
+    stop
+endif
+
+@enduml

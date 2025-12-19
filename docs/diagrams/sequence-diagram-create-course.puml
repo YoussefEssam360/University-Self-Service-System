@@ -1,0 +1,60 @@
+@startuml Sequence Diagram - Create Course
+!theme plain
+
+title Create Course Sequence Diagram
+
+actor Admin
+participant "AdminCoursesPage\n(React)" as Frontend
+participant "axiosClient" as Axios
+participant "CourseController\n(API)" as Controller
+participant "CourseService" as Service
+participant "AutoMapper" as Mapper
+database "Database\n(EF Core)" as DB
+
+Admin -> Frontend : Fill course form
+Admin -> Frontend : Click "Create Course"
+
+Frontend -> Frontend : Validate form data
+
+alt Validation passes
+    Frontend -> Axios : POST /api/Course
+    activate Axios
+    
+    Axios -> Controller : CreateCourseDto
+    activate Controller
+    
+    Controller -> Service : CreateCourse(dto)
+    activate Service
+    
+    Service -> Mapper : Map DTO to Entity
+    activate Mapper
+    Mapper --> Service : Course entity
+    deactivate Mapper
+    
+    Service -> DB : Add Course
+    activate DB
+    DB --> Service : Course saved
+    deactivate DB
+    
+    Service -> Mapper : Map Entity to RDto
+    activate Mapper
+    Mapper --> Service : RCreatedCourseDto
+    deactivate Mapper
+    
+    Service --> Controller : RCreatedCourseDto
+    deactivate Service
+    
+    Controller --> Axios : 200 OK + RCreatedCourseDto
+    deactivate Controller
+    
+    Axios --> Frontend : Response data
+    deactivate Axios
+    
+    Frontend -> Frontend : Update course list
+    Frontend -> Admin : Show success message
+    
+else Validation fails
+    Frontend -> Admin : Show validation errors
+end
+
+@enduml
