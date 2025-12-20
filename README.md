@@ -93,6 +93,16 @@ Frontend runs at: http://localhost:4153
 | [Requirements](docs/REQUIREMENTS.md) | Functional and non-functional requirements |
 | [Specifications](docs/SPECIFICATIONS.md) | Technical architecture and API specs |
 | [Test Cases](docs/TEST_CASES.md) | 39 comprehensive test cases |
+| [Scrum Meetings](docs/scrum/) | Sprint meetings and notes |
+
+## Scrum Meetings
+
+| Sprint | Meeting | Date | Summary |
+|--------|---------|------|---------|
+| Sprint 0 | [Meeting 1](docs/scrum/sprint-0/meeting-1.md) | 02-11-2025 | Project kickoff, task distribution |
+| Sprint 1 | [Meeting 2](docs/scrum/sprint-1/meeting-2.md) | 20-11-2025 | Backend planning, feature assignments |
+| Sprint 1 | [Meeting 3](docs/scrum/sprint-1/meeting-3.md) | 30-11-2025 | Backend completion, switch to React |
+| Sprint 2 | [Meeting 4](docs/scrum/sprint-2/meeting-4.md) | 10-12-2025 | Frontend planning, UI task distribution |
 
 ## API Endpoints
 
@@ -126,9 +136,12 @@ Diagrams are stored in `docs/diagrams/`. PlantUML sources (`.puml`) are included
 | Backend | Azure App Service | https://university-self-service-api-a9gdfdbqhpdedrfa.uaenorth-01.azurewebsites.net/swagger |
 | Database | Azure SQL | Cloud-hosted SQL Server |
 
-## Author
+## Team
 
-**Youssef Zein** - Initial development
+- **Youssef Essam** - Authentication Backend, Admin UI
+- **Ahmad Elmaghraby** - Course Backend, Student UI
+- **Ali Essam** - Student Backend
+- **Zein Osama** - Professor Backend
 
 ## License
 
