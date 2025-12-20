@@ -6,7 +6,8 @@ A web-based self-service portal for university students and administrators to ma
 
 | Component | URL |
 |-----------|-----|
-| **Frontend** | https://youssefessam360.github.io/University-Self-Service-System/ |
+| **Frontend** | https://youssefessam360.github.io/University-Self-Service-System/ 
+**To access the admin page, please use** | **username: Youssef <br> Password: 123456**
 | **Backend API (Swagger)** | https://university-self-service-api-a9gdfdbqhpdedrfa.uaenorth-01.azurewebsites.net/swagger |
 
 ## Overview
