@@ -139,7 +139,7 @@ Diagrams are stored in `docs/diagrams/`. PlantUML sources (`.puml`) are included
 
 ## Team
 
-- **Youssef Essam** - Authentication Backend, Admin UI
+- **Youssef Zein** - Authentication Backend, Admin UI
 - **Ahmad Elmaghraby** - Course Backend, Student UI
 - **Ali Essam** - Student Backend
 - **Zein Osama** - Professor Backend
