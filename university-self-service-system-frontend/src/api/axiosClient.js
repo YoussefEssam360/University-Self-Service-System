@@ -1,9 +1,13 @@
 // src/api/axiosClient.js
 import axios from "axios";
 
-// TODO: change this URL to your backend URL (the one you use for Swagger)
+// Use Azure API in production, localhost in development
+const baseURL = import.meta.env.PROD
+    ? "https://university-self-service-api.azurewebsites.net/api"
+    : "https://localhost:7013/api";
+
 const axiosClient = axios.create({
-    baseURL: "https://localhost:7013/api", // <-- replace port if different
+    baseURL: baseURL,
 });
 
 // Automatically attach JWT if we have it
