@@ -2,6 +2,14 @@
 
 A web-based self-service portal for university students and administrators to manage academic activities.
 
+## 🌐 Live Demo
+
+| Component | URL |
+|-----------|-----|
+| **Frontend** | https://youssefessam360.github.io/University-Self-Service-System/ |
+| **Backend API** | https://university-self-service-api-a9gdfdbqhpdedrfa.uaenorth-01.azurewebsites.net |
+| **API Documentation** | https://university-self-service-api-a9gdfdbqhpdedrfa.uaenorth-01.azurewebsites.net/swagger |
+
 ## Overview
 
 This system provides:
@@ -17,7 +25,17 @@ This system provides:
 | Backend | ASP.NET Core 9, C# 13 |
 | Database | SQL Server, Entity Framework Core |
 
-## Getting Started
+## CI/CD Pipeline
+
+This project uses GitHub Actions for automated builds and deployment:
+
+| Workflow | Purpose | Status |
+|----------|---------|--------|
+| CI Build | Build and validate code | ✅ Active |
+| Deploy Backend | Deploy to Azure App Service | ✅ Active |
+| Deploy Frontend | Deploy to GitHub Pages | ✅ Active |
+
+## Getting Started (Local Development)
 
 ### Prerequisites
 
@@ -27,15 +45,13 @@ This system provides:
 
 ### Run the Backend
 
-Open a terminal and run:
-cd "University Self Service System - Backend" dotnet restore dotnet run
+Navigate to the backend folder and run restore then run commands.
 
 Backend runs at: http://localhost:5000
 
 ### Run the Frontend
 
-Open a terminal and run:
-cd university-self-service-system-frontend npm install npm run dev
+Navigate to the frontend folder and run npm install then npm run dev.
 
 Frontend runs at: http://localhost:4153
 
@@ -68,7 +84,7 @@ Frontend runs at: http://localhost:4153
 | Student Registration | ✅ Complete |
 | Grade Viewing | ✅ Complete |
 | Course Management (Admin) | ✅ Complete |
-| Professor Management (Admin) | 🔲 Backlog |
+| Professor Management (Admin) | ✅ Complete |
 | Student Management (Admin) | 🔲 Backlog |
 
 ## Documentation
@@ -84,36 +100,40 @@ Frontend runs at: http://localhost:4153
 | Endpoint | Description |
 |----------|-------------|
 | POST /api/Auth/login | User authentication |
+| POST /api/Auth/register | User registration |
 | GET /api/ProfManagement | List all professors |
 | GET /api/Course | List all courses |
-| POST /api/Student/register | Student registration |
 
 See [SPECIFICATIONS.md](docs/SPECIFICATIONS.md) for complete API documentation.
 
 ## Diagrams
 
-Diagrams are stored in `docs/diagrams`. PNG images are provided for quick viewing; the corresponding PlantUML sources (`.puml`) are included for editing.
+Diagrams are stored in `docs/diagrams/`. PlantUML sources (`.puml`) are included.
 
-Examples:
-- Login sequence  
-  ![Login Sequence](docs/diagrams/sequence-diagram-login.png)  
-  Source: [sequence-diagram-login.puml](docs/diagrams/sequence-diagram-login.puml)
+| Diagram | File |
+|---------|------|
+| Use Case | `use-case-diagram.puml` |
+| Class Diagram | `class-diagram.puml` |
+| Sequence - Login | `sequence-diagram-login.puml` |
+| Sequence - Create Course | `sequence-diagram-create-course.puml` |
+| Activity - Login | `activity-diagram-login.puml` |
+| State - User Session | `state-diagram-user-session.puml` |
 
-- Create course sequence  
-  ![Create Course Sequence](docs/diagrams/sequence-diagram-create-course.png)  
-  Source: [sequence-diagram-create-course.puml](docs/diagrams/sequence-diagram-create-course.puml)
+## Deployment
 
-- Use-case overview  
-  ![Use Case](docs/diagrams/use-case-diagram.png)  
-  Source: [use-case-diagram.puml](docs/diagrams/use-case-diagram.puml)
-
-- Class diagram  
-  ![Class Diagram](docs/diagrams/class-diagram.png)  
-  Source: [class-diagram.puml](docs/diagrams/class-diagram.puml)
+| Component | Platform | URL |
+|-----------|----------|-----|
+| Frontend | GitHub Pages | https://youssefessam360.github.io/University-Self-Service-System/ |
+| Backend | Azure App Service | https://university-self-service-api-a9gdfdbqhpdedrfa.uaenorth-01.azurewebsites.net |
+| Database | Azure SQL | Cloud-hosted SQL Server |
 
 ## Author
 
 **Youssef Zein** - Initial development
+
+## License
+
+This project is for educational purposes as part of university coursework.
 
 
 

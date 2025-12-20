@@ -13,7 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
-// CORS – DEV ONLY: allow any origin, any header, any method
+// CORS – allow frontend origins
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -25,7 +25,6 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -41,18 +40,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         }));
 
 // Register AutoMapper
-builder.Services.AddAutoMapper(typeof(CourseMappingProfile).Assembly); // for create course Mappings
-
-// -----------------------------
-
+builder.Services.AddAutoMapper(typeof(CourseMappingProfile).Assembly);
 
 builder.Services.AddScoped<ICourseService, courseServices>();
-
 builder.Services.AddScoped<IAuthService, AuthService>();
-
 builder.Services.AddScoped<IProfManagementService, profManagementService>();
-
-// Register student service
 builder.Services.AddScoped<IStudentService, StudentService>();
 
 // JWT Authentication
@@ -60,9 +52,14 @@ var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]);
 
 builder.Services.AddAuthentication(options =>
-{options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
- options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;})
-    .AddJwtBearer(options =>{options.TokenValidationParameters = new TokenValidationParameters{
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
         ValidateIssuer = true,
         ValidateAudience = true,
         ValidateLifetime = true,
@@ -75,22 +72,14 @@ builder.Services.AddAuthentication(options =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+// Enable Swagger in ALL environments (not just Development)
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
-
-// MUST be before auth and MapControllers
 app.UseCors();
-
-// IMPORTANT: auth before authorization
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
