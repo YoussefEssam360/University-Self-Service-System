@@ -7,8 +7,7 @@ A web-based self-service portal for university students and administrators to ma
 | Component | URL |
 |-----------|-----|
 | **Frontend** | https://youssefessam360.github.io/University-Self-Service-System/ |
-| **Backend API** | https://university-self-service-api-a9gdfdbqhpdedrfa.uaenorth-01.azurewebsites.net |
-| **API Documentation** | https://university-self-service-api-a9gdfdbqhpdedrfa.uaenorth-01.azurewebsites.net/swagger |
+| **Backend API (Swagger)** | https://university-self-service-api-a9gdfdbqhpdedrfa.uaenorth-01.azurewebsites.net/swagger |
 
 ## Overview
 
@@ -102,7 +101,7 @@ Frontend runs at: http://localhost:4153
 | POST /api/Auth/login | User authentication |
 | POST /api/Auth/register | User registration |
 | GET /api/ProfManagement | List all professors |
-| GET /api/Course | List all courses |
+| GET /api/CourseFactory | List all courses |
 
 See [SPECIFICATIONS.md](docs/SPECIFICATIONS.md) for complete API documentation.
 
@@ -124,7 +123,7 @@ Diagrams are stored in `docs/diagrams/`. PlantUML sources (`.puml`) are included
 | Component | Platform | URL |
 |-----------|----------|-----|
 | Frontend | GitHub Pages | https://youssefessam360.github.io/University-Self-Service-System/ |
-| Backend | Azure App Service | https://university-self-service-api-a9gdfdbqhpdedrfa.uaenorth-01.azurewebsites.net |
+| Backend | Azure App Service | https://university-self-service-api-a9gdfdbqhpdedrfa.uaenorth-01.azurewebsites.net/swagger |
 | Database | Azure SQL | Cloud-hosted SQL Server |
 
 ## Author
@@ -134,6 +133,3 @@ Diagrams are stored in `docs/diagrams/`. PlantUML sources (`.puml`) are included
 ## License
 
 This project is for educational purposes as part of university coursework.
-
-
-
