@@ -13,7 +13,9 @@ namespace University_Self_Service_System___Backend.DTOs.AuthDTOs
         [Required, EmailAddress]
         public required string Email { get; set; }
 
-        [Required, MinLength(6)]
+        [Required, MinLength(8)]
+        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$",
+            ErrorMessage = "Password must be at least 8 characters and contain at least one uppercase letter, one lowercase letter, one digit, and one special character (@$!%*?&#)")]
         public required string Password { get; set; }
 
         [Required]

@@ -55,7 +55,11 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
             }
 
             // Existing uniqueness checks
-            bool userExists = await _context.Users.AnyAsync(u => u.Username == dto.Username || u.Email == dto.Email);
+            var usernameLower = dto.Username.Trim().ToLower();
+            var emailLower = dto.Email.Trim().ToLower();
+            bool userExists = await _context.Users.AnyAsync(u => 
+                u.Username.ToLower() == usernameLower || 
+                u.Email.ToLower() == emailLower);
             if (userExists)
             {
                 return new AuthResultDto { Success = false, Errors = new[] { "Username or email already in use." } };
@@ -125,8 +129,9 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
 
         public async Task<AuthResultDto> LoginAsync(LoginDto dto)
         {
+            var usernameLower = dto.Username.Trim().ToLower();
             var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Username == dto.Username);
+                .FirstOrDefaultAsync(u => u.Username.ToLower() == usernameLower);
 
             if (user == null || !VerifyPassword(dto.Password, user.PasswordHash))
             {
