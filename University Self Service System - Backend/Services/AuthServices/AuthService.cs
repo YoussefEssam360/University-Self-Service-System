@@ -123,8 +123,15 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
                 await _context.SaveChangesAsync();
             }
 
-            var token = GenerateJwtToken(user);
-            return new AuthResultDto { Success = true, Token = token, Username = user.Username, Role = user.Role };
+            var (token, expiresAt) = GenerateJwtToken(user);
+            return new AuthResultDto 
+            { 
+                Success = true, 
+                Token = token, 
+                Username = user.Username, 
+                Role = user.Role,
+                ExpiresAt = expiresAt
+            };
         }
 
         public async Task<AuthResultDto> LoginAsync(LoginDto dto)
@@ -142,15 +149,73 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
                 };
             }
 
-            var token = GenerateJwtToken(user);
+            var (token, expiresAt) = GenerateJwtToken(user);
 
             return new AuthResultDto
             {
                 Success = true,
                 Token = token,
                 Username = user.Username,
-                Role = user.Role
+                Role = user.Role,
+                ExpiresAt = expiresAt
             };
+        }
+
+        public async Task<AuthResultDto> RefreshTokenAsync(string token)
+        {
+            try
+            {
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var jwtSettings = _configuration.GetSection("Jwt");
+                var keyValue = jwtSettings["Key"] ?? throw new InvalidOperationException("Jwt:Key is not configured.");
+                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyValue));
+
+                var validationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = false, // We validate expired tokens to refresh them
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = jwtSettings["Issuer"],
+                    ValidAudience = jwtSettings["Audience"],
+                    IssuerSigningKey = key,
+                    ClockSkew = TimeSpan.Zero
+                };
+
+                var principal = tokenHandler.ValidateToken(token, validationParameters, out var validatedToken);
+                
+                if (validatedToken is not JwtSecurityToken jwtToken || 
+                    !jwtToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    return new AuthResultDto { Success = false, Errors = new[] { "Invalid token." } };
+                }
+
+                var userIdClaim = principal.FindFirst(JwtRegisteredClaimNames.Sub);
+                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+                {
+                    return new AuthResultDto { Success = false, Errors = new[] { "Invalid token claims." } };
+                }
+
+                var user = await _context.Users.FindAsync(userId);
+                if (user == null)
+                {
+                    return new AuthResultDto { Success = false, Errors = new[] { "User not found." } };
+                }
+
+                var (newToken, expiresAt) = GenerateJwtToken(user);
+                return new AuthResultDto
+                {
+                    Success = true,
+                    Token = newToken,
+                    Username = user.Username,
+                    Role = user.Role,
+                    ExpiresAt = expiresAt
+                };
+            }
+            catch (Exception ex)
+            {
+                return new AuthResultDto { Success = false, Errors = new[] { "Token refresh failed: " + ex.Message } };
+            }
         }
 
         // ===== helpers =====
@@ -169,7 +234,7 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
             return hashOfInput == storedHash;
         }
 
-        private string GenerateJwtToken(User user)
+        private (string token, DateTime expiresAt) GenerateJwtToken(User user)
         {
             var jwtSettings = _configuration.GetSection("Jwt");
 
@@ -180,6 +245,8 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyValue));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var expiresAt = DateTime.UtcNow.AddMinutes(double.Parse(durationMinutesText));
 
             var claims = new List<Claim>
             {
@@ -192,11 +259,11 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
                 issuer: issuer,
                 audience: audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(double.Parse(durationMinutesText)),
+                expires: expiresAt,
                 signingCredentials: creds
             );
 
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
         }
     }
 }

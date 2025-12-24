@@ -8,6 +8,8 @@
 
         // So the frontend can easily check “is this user an Admin?”, add Role to the result:
         public string Username { get; set; }
-        public string Role { get; set; }
-    }
+        public string Role { get; set; }   
+             
+        // Token expiration timestamp (UTC)
+        public DateTime? ExpiresAt { get; set; }    }
 }
