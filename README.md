@@ -84,7 +84,7 @@ Frontend runs at: http://localhost:4153
 | Student Registration | ✅ Complete |
 | Grade Viewing | ✅ Complete |
 | Course Management (Admin) | ✅ Complete |
-| Professor Management (Admin) | ✅ Complete |
+| Professor Management (Admin) | 🔲 Backlog |
 | Student Management (Admin) | 🔲 Backlog |
 
 ## Documentation
