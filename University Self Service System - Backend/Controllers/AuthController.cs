@@ -18,6 +18,9 @@ namespace University_Self_Service_System___Backend.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+                
             var result = await _authService.RegisterAsync(dto);
 
             if (!result.Success)

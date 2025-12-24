@@ -18,6 +18,12 @@ namespace University_Self_Service_System___Backend.Services.CourseFactory
             bool professorWasNotFound = false;
             string? instructorName = null;
 
+            // 0. Validate dates
+            if (dto.EndDate <= dto.StartDate)
+            {
+                return new RCreatedCourseDto { CourseCodeIsDuplicate = false, ProfessorIdNotFound = false };
+            }
+
             // 1. Check for Duplicate Course Code
             var courseExists = await _context.Courses.AnyAsync(c => c.Code == dto.Code);
             if (courseExists)

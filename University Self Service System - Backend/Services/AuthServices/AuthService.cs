@@ -45,6 +45,23 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
                 {
                     return new AuthResultDto { Success = false, Errors = new[] { $"Missing required student fields: {string.Join(", ", missing)}." } };
                 }
+                
+                // Validate date of birth
+                if (dto.DateOfBirth.HasValue)
+                {
+                    if (dto.DateOfBirth.Value > DateTime.Today)
+                    {
+                        return new AuthResultDto { Success = false, Errors = new[] { "Date of birth cannot be in the future." } };
+                    }
+                    
+                    var age = DateTime.Today.Year - dto.DateOfBirth.Value.Year;
+                    if (dto.DateOfBirth.Value.Date > DateTime.Today.AddYears(-age)) age--;
+                    
+                    if (age < 16)
+                    {
+                        return new AuthResultDto { Success = false, Errors = new[] { "Student must be at least 16 years old." } };
+                    }
+                }
             }
             else if (normalizedRole == "Professor")
             {

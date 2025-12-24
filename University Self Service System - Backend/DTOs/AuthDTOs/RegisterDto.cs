@@ -27,6 +27,9 @@ namespace University_Self_Service_System___Backend.DTOs.AuthDTOs
 
         // Student fields (required when Role == Student)
         public string? Major { get; set; }
+        
+        // Validate date of birth: must be in the past and student must be at least 16 years old
+        [DataType(DataType.Date)]
         public DateTime? DateOfBirth { get; set; }
 
         // Professor field (required when Role == Professor)

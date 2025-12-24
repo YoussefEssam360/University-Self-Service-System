@@ -21,6 +21,9 @@ namespace University_Self_Service_System___Backend.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateCourse([FromBody] CreateCourseDto dto)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+                
             var result = await _courseService.CreateCourse(dto);
             return Ok(result);
         }
@@ -42,6 +45,9 @@ namespace University_Self_Service_System___Backend.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> updateCourse([FromBody] updateCourseDto dto)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+                
             var result = await _courseService.updateCourse(dto);
 
             if (!result.done)
