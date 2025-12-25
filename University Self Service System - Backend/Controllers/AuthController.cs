@@ -18,6 +18,9 @@ namespace University_Self_Service_System___Backend.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+                
             var result = await _authService.RegisterAsync(dto);
 
             if (!result.Success)
@@ -30,6 +33,17 @@ namespace University_Self_Service_System___Backend.Controllers
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
             var result = await _authService.LoginAsync(dto);
+
+            if (!result.Success)
+                return Unauthorized(result);
+
+            return Ok(result);
+        }
+
+        [HttpPost("refresh")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDto dto)
+        {
+            var result = await _authService.RefreshTokenAsync(dto.Token);
 
             if (!result.Success)
                 return Unauthorized(result);

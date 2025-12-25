@@ -45,6 +45,23 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
                 {
                     return new AuthResultDto { Success = false, Errors = new[] { $"Missing required student fields: {string.Join(", ", missing)}." } };
                 }
+                
+                // Validate date of birth
+                if (dto.DateOfBirth.HasValue)
+                {
+                    if (dto.DateOfBirth.Value > DateTime.Today)
+                    {
+                        return new AuthResultDto { Success = false, Errors = new[] { "Date of birth cannot be in the future." } };
+                    }
+                    
+                    var age = DateTime.Today.Year - dto.DateOfBirth.Value.Year;
+                    if (dto.DateOfBirth.Value.Date > DateTime.Today.AddYears(-age)) age--;
+                    
+                    if (age < 16)
+                    {
+                        return new AuthResultDto { Success = false, Errors = new[] { "Student must be at least 16 years old." } };
+                    }
+                }
             }
             else if (normalizedRole == "Professor")
             {
@@ -55,19 +72,31 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
             }
 
             // Existing uniqueness checks
-            bool userExists = await _context.Users.AnyAsync(u => u.Username == dto.Username || u.Email == dto.Email);
+            var usernameLower = dto.Username.Trim().ToLower();
+            var emailLower = dto.Email.Trim().ToLower();
+            bool userExists = await _context.Users.AnyAsync(u => 
+                u.Username.ToLower() == usernameLower || 
+                u.Email.ToLower() == emailLower);
             if (userExists)
             {
                 return new AuthResultDto { Success = false, Errors = new[] { "Username or email already in use." } };
             }
 
-            // Phone uniqueness across profiles (Student + Professor)
-            var phone = (dto.PhoneNumber ?? string.Empty).Trim();
-            if (!string.IsNullOrEmpty(phone))
+            // Validate and normalize phone number
+            string normalizedPhone = string.Empty;
+            if (!string.IsNullOrWhiteSpace(dto.PhoneNumber))
             {
+                var (isValid, normalized, errorMsg) = ValidateAndNormalizePhoneNumber(dto.PhoneNumber);
+                if (!isValid)
+                {
+                    return new AuthResultDto { Success = false, Errors = new[] { errorMsg } };
+                }
+                normalizedPhone = normalized;
+
+                // Phone uniqueness across profiles (Student + Professor)
                 bool phoneExists =
-                    await _context.Students.AnyAsync(s => s.PhoneNumber == phone) ||
-                    await _context.Professors.AnyAsync(p => p.PhoneNumber == phone);
+                    await _context.Students.AnyAsync(s => s.PhoneNumber == normalizedPhone) ||
+                    await _context.Professors.AnyAsync(p => p.PhoneNumber == normalizedPhone);
 
                 if (phoneExists)
                 {
@@ -95,7 +124,7 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
                     Name = user.Username,
                     FullName = user.FullName,
                     Email = user.Email,
-                    PhoneNumber = phone,
+                    PhoneNumber = normalizedPhone,
                     Major = dto.Major!.Trim(),
                     DateOfBirth = dto.DateOfBirth
                 };
@@ -111,7 +140,7 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
                     Name = user.Username,
                     FullName = user.FullName,
                     Email = user.Email,
-                    PhoneNumber = phone,
+                    PhoneNumber = normalizedPhone,
                     Department = dto.Department!.Trim()
                 };
 
@@ -119,14 +148,22 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
                 await _context.SaveChangesAsync();
             }
 
-            var token = GenerateJwtToken(user);
-            return new AuthResultDto { Success = true, Token = token, Username = user.Username, Role = user.Role };
+            var (token, expiresAt) = GenerateJwtToken(user);
+            return new AuthResultDto 
+            { 
+                Success = true, 
+                Token = token, 
+                Username = user.Username, 
+                Role = user.Role,
+                ExpiresAt = expiresAt
+            };
         }
 
         public async Task<AuthResultDto> LoginAsync(LoginDto dto)
         {
+            var usernameLower = dto.Username.Trim().ToLower();
             var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Username == dto.Username);
+                .FirstOrDefaultAsync(u => u.Username.ToLower() == usernameLower);
 
             if (user == null || !VerifyPassword(dto.Password, user.PasswordHash))
             {
@@ -137,18 +174,105 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
                 };
             }
 
-            var token = GenerateJwtToken(user);
+            var (token, expiresAt) = GenerateJwtToken(user);
 
             return new AuthResultDto
             {
                 Success = true,
                 Token = token,
                 Username = user.Username,
-                Role = user.Role
+                Role = user.Role,
+                ExpiresAt = expiresAt
             };
         }
 
+        public async Task<AuthResultDto> RefreshTokenAsync(string token)
+        {
+            try
+            {
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var jwtSettings = _configuration.GetSection("Jwt");
+                var keyValue = jwtSettings["Key"] ?? throw new InvalidOperationException("Jwt:Key is not configured.");
+                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyValue));
+
+                var validationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = false, // We validate expired tokens to refresh them
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = jwtSettings["Issuer"],
+                    ValidAudience = jwtSettings["Audience"],
+                    IssuerSigningKey = key,
+                    ClockSkew = TimeSpan.Zero
+                };
+
+                var principal = tokenHandler.ValidateToken(token, validationParameters, out var validatedToken);
+                
+                if (validatedToken is not JwtSecurityToken jwtToken || 
+                    !jwtToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    return new AuthResultDto { Success = false, Errors = new[] { "Invalid token." } };
+                }
+
+                var userIdClaim = principal.FindFirst(JwtRegisteredClaimNames.Sub);
+                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+                {
+                    return new AuthResultDto { Success = false, Errors = new[] { "Invalid token claims." } };
+                }
+
+                var user = await _context.Users.FindAsync(userId);
+                if (user == null)
+                {
+                    return new AuthResultDto { Success = false, Errors = new[] { "User not found." } };
+                }
+
+                var (newToken, expiresAt) = GenerateJwtToken(user);
+                return new AuthResultDto
+                {
+                    Success = true,
+                    Token = newToken,
+                    Username = user.Username,
+                    Role = user.Role,
+                    ExpiresAt = expiresAt
+                };
+            }
+            catch (Exception ex)
+            {
+                return new AuthResultDto { Success = false, Errors = new[] { "Token refresh failed: " + ex.Message } };
+            }
+        }
+
         // ===== helpers =====
+
+        private (bool isValid, string normalizedPhone, string errorMessage) ValidateAndNormalizePhoneNumber(string phoneNumber)
+        {
+            if (string.IsNullOrWhiteSpace(phoneNumber))
+                return (false, string.Empty, "Phone number is required.");
+
+            var phone = phoneNumber.Trim();
+
+            // Remove +2 prefix if present
+            if (phone.StartsWith("+2"))
+            {
+                phone = phone.Substring(2);
+            }
+
+            // Remove any spaces, dashes, or parentheses
+            phone = phone.Replace(" ", "").Replace("-", "").Replace("(", "").Replace(")", "");
+
+            // Validate: must be exactly 11 digits and start with 01
+            if (phone.Length != 11)
+                return (false, string.Empty, "Phone number must be 11 digits.");
+
+            if (!phone.StartsWith("01"))
+                return (false, string.Empty, "Phone number must start with 01.");
+
+            if (!phone.All(char.IsDigit))
+                return (false, string.Empty, "Phone number must contain only digits.");
+
+            return (true, phone, string.Empty);
+        }
 
         private string HashPassword(string password)
         {
@@ -164,7 +288,7 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
             return hashOfInput == storedHash;
         }
 
-        private string GenerateJwtToken(User user)
+        private (string token, DateTime expiresAt) GenerateJwtToken(User user)
         {
             var jwtSettings = _configuration.GetSection("Jwt");
 
@@ -175,6 +299,8 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyValue));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var expiresAt = DateTime.UtcNow.AddMinutes(double.Parse(durationMinutesText));
 
             var claims = new List<Claim>
             {
@@ -187,11 +313,11 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
                 issuer: issuer,
                 audience: audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(double.Parse(durationMinutesText)),
+                expires: expiresAt,
                 signingCredentials: creds
             );
 
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
         }
     }
 }

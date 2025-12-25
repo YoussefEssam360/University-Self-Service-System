@@ -6,5 +6,6 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
     {
         Task<AuthResultDto> RegisterAsync(RegisterDto dto);
         Task<AuthResultDto> LoginAsync(LoginDto dto);
+        Task<AuthResultDto> RefreshTokenAsync(string token);
     }
 }
