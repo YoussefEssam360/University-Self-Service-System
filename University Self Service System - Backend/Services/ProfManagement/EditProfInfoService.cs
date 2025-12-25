@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using University_Self_Service_System___Backend.DTOs.AuthDTOs;
 using University_Self_Service_System___Backend.DTOs.ProfessorDTOs;
 
 namespace University_Self_Service_System___Backend.Services.ProfManagement
@@ -56,7 +57,6 @@ namespace University_Self_Service_System___Backend.Services.ProfManagement
 
             // 5. Save changes
             await _context.SaveChangesAsync();
-
             return new RUpdateProfessorDto { Success = true };
         }
     }
