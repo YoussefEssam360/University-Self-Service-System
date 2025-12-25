@@ -82,13 +82,21 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
                 return new AuthResultDto { Success = false, Errors = new[] { "Username or email already in use." } };
             }
 
-            // Phone uniqueness across profiles (Student + Professor)
-            var phone = (dto.PhoneNumber ?? string.Empty).Trim();
-            if (!string.IsNullOrEmpty(phone))
+            // Validate and normalize phone number
+            string normalizedPhone = string.Empty;
+            if (!string.IsNullOrWhiteSpace(dto.PhoneNumber))
             {
+                var (isValid, normalized, errorMsg) = ValidateAndNormalizePhoneNumber(dto.PhoneNumber);
+                if (!isValid)
+                {
+                    return new AuthResultDto { Success = false, Errors = new[] { errorMsg } };
+                }
+                normalizedPhone = normalized;
+
+                // Phone uniqueness across profiles (Student + Professor)
                 bool phoneExists =
-                    await _context.Students.AnyAsync(s => s.PhoneNumber == phone) ||
-                    await _context.Professors.AnyAsync(p => p.PhoneNumber == phone);
+                    await _context.Students.AnyAsync(s => s.PhoneNumber == normalizedPhone) ||
+                    await _context.Professors.AnyAsync(p => p.PhoneNumber == normalizedPhone);
 
                 if (phoneExists)
                 {
@@ -116,7 +124,7 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
                     Name = user.Username,
                     FullName = user.FullName,
                     Email = user.Email,
-                    PhoneNumber = phone,
+                    PhoneNumber = normalizedPhone,
                     Major = dto.Major!.Trim(),
                     DateOfBirth = dto.DateOfBirth
                 };
@@ -132,7 +140,7 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
                     Name = user.Username,
                     FullName = user.FullName,
                     Email = user.Email,
-                    PhoneNumber = phone,
+                    PhoneNumber = normalizedPhone,
                     Department = dto.Department!.Trim()
                 };
 
@@ -236,6 +244,35 @@ namespace University_Self_Service_System___Backend.Services.AuthServices
         }
 
         // ===== helpers =====
+
+        private (bool isValid, string normalizedPhone, string errorMessage) ValidateAndNormalizePhoneNumber(string phoneNumber)
+        {
+            if (string.IsNullOrWhiteSpace(phoneNumber))
+                return (false, string.Empty, "Phone number is required.");
+
+            var phone = phoneNumber.Trim();
+
+            // Remove +2 prefix if present
+            if (phone.StartsWith("+2"))
+            {
+                phone = phone.Substring(2);
+            }
+
+            // Remove any spaces, dashes, or parentheses
+            phone = phone.Replace(" ", "").Replace("-", "").Replace("(", "").Replace(")", "");
+
+            // Validate: must be exactly 11 digits and start with 01
+            if (phone.Length != 11)
+                return (false, string.Empty, "Phone number must be 11 digits.");
+
+            if (!phone.StartsWith("01"))
+                return (false, string.Empty, "Phone number must start with 01.");
+
+            if (!phone.All(char.IsDigit))
+                return (false, string.Empty, "Phone number must contain only digits.");
+
+            return (true, phone, string.Empty);
+        }
 
         private string HashPassword(string password)
         {

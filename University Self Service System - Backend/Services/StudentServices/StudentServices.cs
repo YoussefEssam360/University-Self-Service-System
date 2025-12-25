@@ -22,6 +22,35 @@ namespace University_Self_Service_System___Backend.Services.StudentServices
             _logger = logger;
         }
 
+        private (bool isValid, string normalizedPhone, string errorMessage) ValidateAndNormalizePhoneNumber(string phoneNumber)
+        {
+            if (string.IsNullOrWhiteSpace(phoneNumber))
+                return (false, string.Empty, "Phone number is required.");
+
+            var phone = phoneNumber.Trim();
+
+            // Remove +2 prefix if present
+            if (phone.StartsWith("+2"))
+            {
+                phone = phone.Substring(2);
+            }
+
+            // Remove any spaces, dashes, or parentheses
+            phone = phone.Replace(" ", "").Replace("-", "").Replace("(", "").Replace(")", "");
+
+            // Validate: must be exactly 11 digits and start with 01
+            if (phone.Length != 11)
+                return (false, string.Empty, "Phone number must be 11 digits.");
+
+            if (!phone.StartsWith("01"))
+                return (false, string.Empty, "Phone number must start with 01.");
+
+            if (!phone.All(char.IsDigit))
+                return (false, string.Empty, "Phone number must contain only digits.");
+
+            return (true, phone, string.Empty);
+        }
+
         public async Task<OperationResult<StudentProfileDto>> GetProfileAsync(int studentId, CancellationToken cancellationToken = default)
         {
             var result = new OperationResult<StudentProfileDto>();
@@ -77,7 +106,29 @@ namespace University_Self_Service_System___Backend.Services.StudentServices
             }
 
             if (!string.IsNullOrWhiteSpace(updateDto.PhoneNumber))
-                student.PhoneNumber = updateDto.PhoneNumber;
+            {
+                // Validate and normalize phone number
+                var (isValid, normalizedPhone, errorMsg) = ValidateAndNormalizePhoneNumber(updateDto.PhoneNumber);
+                if (!isValid)
+                {
+                    result.Success = false;
+                    result.Message = errorMsg;
+                    return result;
+                }
+
+                // Check phone uniqueness across all students and professors
+                var phoneExists = await _db.Students.AnyAsync(s => s.PhoneNumber == normalizedPhone && s.Id != studentId, cancellationToken) ||
+                                  await _db.Professors.AnyAsync(p => p.PhoneNumber == normalizedPhone, cancellationToken);
+                
+                if (phoneExists)
+                {
+                    result.Success = false;
+                    result.Message = "Phone number already in use.";
+                    return result;
+                }
+
+                student.PhoneNumber = normalizedPhone;
+            }
 
             if (updateDto.DateOfBirth.HasValue)
                 student.DateOfBirth = updateDto.DateOfBirth;
