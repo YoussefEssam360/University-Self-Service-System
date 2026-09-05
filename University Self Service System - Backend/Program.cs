@@ -70,6 +70,16 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+// Secure every endpoint by default. Public endpoints must opt out explicitly
+// with [AllowAnonymous], which prevents newly added controllers from being
+// accidentally exposed.
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
 var app = builder.Build();
 
 // Enable Swagger in ALL environments (not just Development)

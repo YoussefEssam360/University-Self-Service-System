@@ -29,6 +29,11 @@ export default function StudentNavDashboard() {
                         <span className="nav-icon">📚</span>
                         <span>My Courses</span>
                     </NavLink>
+
+                    <NavLink to="/student/profile" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+                        <span className="nav-icon">👤</span>
+                        <span>Profile</span>
+                    </NavLink>
                 </nav>
             </div>
 

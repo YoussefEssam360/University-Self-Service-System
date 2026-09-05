@@ -40,7 +40,7 @@ namespace University_Self_Service_System___Backend.Services.StudentServices
             {
                 Id = student.Id,
                 FullName = student.FullName ?? student.User?.FullName,
-                Email = student.User?.Email,
+                Email = student.User?.Email ?? student.Email,
                 PhoneNumber = student.PhoneNumber,
                 DateOfBirth = student.DateOfBirth,
                 Major = student.Major
@@ -64,26 +64,66 @@ namespace University_Self_Service_System___Backend.Services.StudentServices
                 return result;
             }
 
-            if (!string.IsNullOrWhiteSpace(updateDto.FullName))
+            var fullName = updateDto.FullName?.Trim();
+            var email = updateDto.Email?.Trim();
+            var phoneNumber = updateDto.PhoneNumber?.Trim();
+            var major = updateDto.Major?.Trim();
+
+            if (string.IsNullOrWhiteSpace(fullName)
+                || string.IsNullOrWhiteSpace(email)
+                || string.IsNullOrWhiteSpace(phoneNumber)
+                || string.IsNullOrWhiteSpace(major)
+                || !updateDto.DateOfBirth.HasValue)
             {
-                student.FullName = updateDto.FullName;
-                if (student.User != null)
-                    student.User.FullName = updateDto.FullName;
+                result.Success = false;
+                result.Message = "Name, email, phone number, date of birth, and major are required.";
+                return result;
             }
 
-            if (!string.IsNullOrWhiteSpace(updateDto.Email) && student.User != null)
+            if (updateDto.DateOfBirth.Value.Date >= DateTime.UtcNow.Date)
             {
-                student.User.Email = updateDto.Email;
+                result.Success = false;
+                result.Message = "Date of birth must be in the past.";
+                return result;
             }
 
-            if (!string.IsNullOrWhiteSpace(updateDto.PhoneNumber))
-                student.PhoneNumber = updateDto.PhoneNumber;
+            var normalizedEmail = email.ToLower();
+            var emailInUse = await _db.Users.AnyAsync(
+                user => user.Id != student.UserId && user.Email.ToLower() == normalizedEmail,
+                cancellationToken);
 
-            if (updateDto.DateOfBirth.HasValue)
-                student.DateOfBirth = updateDto.DateOfBirth;
+            if (emailInUse)
+            {
+                result.Success = false;
+                result.Message = "That email address is already in use.";
+                return result;
+            }
 
-            if (!string.IsNullOrWhiteSpace(updateDto.Major))
-                student.Major = updateDto.Major;
+            var phoneInUse = await _db.Students.AnyAsync(
+                    other => other.Id != student.Id && other.PhoneNumber == phoneNumber,
+                    cancellationToken)
+                || await _db.Professors.AnyAsync(
+                    professor => professor.PhoneNumber == phoneNumber,
+                    cancellationToken);
+
+            if (phoneInUse)
+            {
+                result.Success = false;
+                result.Message = "That phone number is already in use.";
+                return result;
+            }
+
+            student.FullName = fullName;
+            student.Email = email;
+            student.PhoneNumber = phoneNumber;
+            student.DateOfBirth = updateDto.DateOfBirth.Value.Date;
+            student.Major = major;
+
+            if (student.User != null)
+            {
+                student.User.FullName = fullName;
+                student.User.Email = email;
+            }
 
             await _db.SaveChangesAsync(cancellationToken);
 
@@ -92,7 +132,7 @@ namespace University_Self_Service_System___Backend.Services.StudentServices
             {
                 Id = student.Id,
                 FullName = student.FullName ?? student.User?.FullName,
-                Email = student.User?.Email,
+                Email = student.User?.Email ?? student.Email,
                 PhoneNumber = student.PhoneNumber,
                 DateOfBirth = student.DateOfBirth,
                 Major = student.Major

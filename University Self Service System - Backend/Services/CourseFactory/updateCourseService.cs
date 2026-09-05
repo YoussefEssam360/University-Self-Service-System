@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using University_Self_Service_System___Backend.DTOs.CourseDTOs;
 using University_Self_Service_System___Backend.Entities;
 
@@ -6,69 +6,90 @@ namespace University_Self_Service_System___Backend.Services.CourseFactory
 {
     public partial class courseServices
     {
-        public async Task<RupdateCourse> updateCourse(updateCourseDto courseDto)
+        public async Task<RupdateCourse> updateCourse(updateCourseDto dto)
         {
-            if (courseDto == null)
+            var lookupCode = dto.OriginalCode.Trim();
+            var code = dto.Code.Trim();
+            var title = dto.Title.Trim();
+
+            var validationMessage = ValidateCourse(
+                code,
+                title,
+                dto.CreditHours,
+                dto.Capacity,
+                dto.StartDate,
+                dto.EndDate);
+
+            if (validationMessage != null)
             {
-                Console.WriteLine("updateCourse: null DTO");
-                return new RupdateCourse { done = false };
+                return new RupdateCourse { Message = validationMessage };
             }
 
-            // Determine lookup key: prefer OriginalCode when editing the code itself
-            var lookupKey = !string.IsNullOrWhiteSpace(courseDto.OriginalCode)
-                ? courseDto.OriginalCode.Trim()
-                : courseDto.Code?.Trim();
+            var normalizedLookupCode = lookupCode.ToLower();
+            var course = await _context.Courses
+                .FirstOrDefaultAsync(item => item.Code.ToLower() == normalizedLookupCode);
 
-            if (string.IsNullOrWhiteSpace(lookupKey))
+            if (course == null)
             {
-                Console.WriteLine("updateCourse: missing lookup key (OriginalCode or Code)");
-                return new RupdateCourse { done = false };
-            }
-
-            Console.WriteLine($"updateCourse: lookupKey='{lookupKey}', incoming Code='{courseDto.Code}', Title='{courseDto.Title}', CreditHours={courseDto.CreditHours}");
-
-            // Try exact then case-insensitive matches (defensive)
-            var courseEntity = await _context.Courses
-                .FirstOrDefaultAsync(c => c.Code == lookupKey);
-
-            if (courseEntity == null)
-            {
-                var keyLower = lookupKey.ToLowerInvariant();
-                courseEntity = await _context.Courses
-                    .FirstOrDefaultAsync(c => c.Code != null && c.Code.ToLower() == keyLower);
-            }
-
-            if (courseEntity == null)
-            {
-                Console.WriteLine($"updateCourse: no course found for lookupKey='{lookupKey}'");
-                return new RupdateCourse { done = false };
-            }
-
-            // If the code is being changed, ensure the new code doesn't collide with another course
-            var newCode = courseDto.Code?.Trim();
-            if (!string.IsNullOrWhiteSpace(newCode) && !string.Equals(courseEntity.Code?.Trim(), newCode, StringComparison.OrdinalIgnoreCase))
-            {
-                var newCodeLower = newCode.ToLowerInvariant();
-                var duplicate = await _context.Courses
-                    .AnyAsync(c => c.Code != null && c.Code.ToLower() == newCodeLower && c.Id != courseEntity.Id);
-
-                if (duplicate)
+                return new RupdateCourse
                 {
-                    Console.WriteLine($"updateCourse: target Code '{newCode}' already exists on a different course");
-                    return new RupdateCourse { done = false };
-                }
-
-                courseEntity.Code = newCode;
+                    CourseNotFound = true,
+                    Message = "Course not found. Refresh the page and try again."
+                };
             }
 
-            // Update other fields
-            courseEntity.Title = courseDto.Title;
-            courseEntity.CreditHours = courseDto.CreditHours;
+            var normalizedCode = code.ToLower();
+            var duplicateCode = await _context.Courses.AnyAsync(item =>
+                item.Id != course.Id && item.Code.ToLower() == normalizedCode);
+
+            if (duplicateCode)
+            {
+                return new RupdateCourse
+                {
+                    CourseCodeIsDuplicate = true,
+                    Message = $"A course with code '{code}' already exists."
+                };
+            }
+
+            var enrolledCount = await _context.Enrollments.CountAsync(item => item.CourseId == course.Id);
+            if (dto.Capacity < enrolledCount)
+            {
+                return new RupdateCourse
+                {
+                    Message = $"Capacity cannot be lower than the {enrolledCount} currently enrolled students."
+                };
+            }
+
+            Professor? professor = null;
+            if (dto.ProfessorId.HasValue)
+            {
+                professor = await _context.Professors.FindAsync(dto.ProfessorId.Value);
+                if (professor == null)
+                {
+                    return new RupdateCourse
+                    {
+                        ProfessorIdNotFound = true,
+                        Message = "The selected professor no longer exists."
+                    };
+                }
+            }
+
+            course.Code = code;
+            course.Title = title;
+            course.CreditHours = dto.CreditHours;
+            course.ProfessorId = professor?.Id;
+            course.InstructorName = professor == null ? null : professor.FullName ?? professor.Name;
+            course.Capacity = dto.Capacity;
+            course.StartDate = dto.StartDate.Date;
+            course.EndDate = dto.EndDate.Date;
 
             await _context.SaveChangesAsync();
 
-            Console.WriteLine($"updateCourse: updated course Id={courseEntity.Id}, Code='{courseEntity.Code}'");
-            return new RupdateCourse { done = true };
+            return new RupdateCourse
+            {
+                done = true,
+                Message = "Course updated successfully."
+            };
         }
     }
 }

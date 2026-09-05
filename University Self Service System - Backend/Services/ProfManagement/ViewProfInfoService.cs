@@ -12,8 +12,10 @@ namespace University_Self_Service_System___Backend.Services.ProfManagement
                 .Select(p => new RViewProfessorDto
                 {
                     Id = p.Id,
-                    Name = p.Name,
+                    Username = p.User.Username,
+                    FullName = p.FullName,
                     Email = p.Email,
+                    PhoneNumber = p.PhoneNumber,
                     Department = p.Department,
                     CourseCount = p.Courses.Count
                 })
@@ -30,8 +32,10 @@ namespace University_Self_Service_System___Backend.Services.ProfManagement
                 .Select(p => new RViewProfessorDto
                 {
                     Id = p.Id,
-                    Name = p.Name,
+                    Username = p.User.Username,
+                    FullName = p.FullName,
                     Email = p.Email,
+                    PhoneNumber = p.PhoneNumber,
                     Department = p.Department,
                     CourseCount = p.Courses.Count
                 })
@@ -39,7 +43,7 @@ namespace University_Self_Service_System___Backend.Services.ProfManagement
 
             if (professorDto == null)
             {
-                return new RViewProfessorDto { ProfessorNotFound = true };
+                return new RViewProfessorDto { ProfessorNotFound = true, Message = "Professor was not found." };
             }
 
             return professorDto;

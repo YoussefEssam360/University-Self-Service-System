@@ -1,13 +1,24 @@
-﻿namespace University_Self_Service_System___Backend.DTOs.CourseDTOs
+using System.ComponentModel.DataAnnotations;
+
+namespace University_Self_Service_System___Backend.DTOs.CourseDTOs
 {
     public class CreateCourseDto
     {
-        public string Code { get; set; }        // e.g. "CSCI313"
-        public string Title { get; set; }
+        [Required, MaxLength(30)]
+        public string Code { get; set; } = string.Empty;
+
+        [Required, MaxLength(200)]
+        public string Title { get; set; } = string.Empty;
+
+        [Range(1, 12)]
         public int CreditHours { get; set; }
 
-        // optional: assign a professor at creation
         public int? ProfessorId { get; set; }
+
+        [Range(1, int.MaxValue)]
+        public int Capacity { get; set; }
+
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
     }
 }
-

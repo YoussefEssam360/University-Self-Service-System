@@ -7,36 +7,49 @@ namespace University_Self_Service_System___Backend.Services.ProfManagement
     {
         public async Task<RUpdateProfessorDto> UpdateProfessor(UpdateProfessorDto dto)
         {
-            // 1. Find the professor by ID
             var professor = await _context.Professors
+                .Include(p => p.User)
                 .FirstOrDefaultAsync(p => p.Id == dto.Id);
 
             if (professor == null)
             {
-                return new RUpdateProfessorDto { ProfessorNotFound = true };
+                return new RUpdateProfessorDto { ProfessorNotFound = true, Message = "Professor was not found." };
             }
 
-            // 2. Check if email is being changed to a duplicate
-            if (professor.Email != dto.Email)
+            var fullName = dto.FullName.Trim();
+            var email = dto.Email.Trim();
+            var phone = dto.PhoneNumber.Trim();
+            var department = dto.Department.Trim();
+
+            var emailExists = await _context.Users.AnyAsync(user =>
+                user.Email == email && user.Id != professor.UserId);
+            if (emailExists)
             {
-                var emailExists = await _context.Professors
-                    .AnyAsync(p => p.Email == dto.Email && p.Id != dto.Id);
-
-                if (emailExists)
+                return new RUpdateProfessorDto
                 {
-                    return new RUpdateProfessorDto { EmailIsDuplicate = true };
-                }
+                    EmailIsDuplicate = true,
+                    Message = "Email is already in use."
+                };
             }
 
-            // 3. Update properties
-            professor.Name = dto.Name;
-            professor.Email = dto.Email;
-            professor.Department = dto.Department;
+            var phoneExists = await _context.Professors.AnyAsync(item =>
+                    item.PhoneNumber == phone && item.Id != dto.Id)
+                || await _context.Students.AnyAsync(item => item.PhoneNumber == phone);
+            if (phoneExists)
+            {
+                return new RUpdateProfessorDto { Message = "Phone number is already in use." };
+            }
 
-            // 4. Save changes
+            professor.FullName = fullName;
+            professor.Email = email;
+            professor.PhoneNumber = phone;
+            professor.Department = department;
+            professor.User.FullName = fullName;
+            professor.User.Email = email;
+
             await _context.SaveChangesAsync();
 
-            return new RUpdateProfessorDto { Success = true };
+            return new RUpdateProfessorDto { Success = true, Message = "Professor updated." };
         }
     }
 }

@@ -1,225 +1,172 @@
-// src/pages/StudentRegistrationPage.jsx
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from "react";
 import axiosClient from "../../api/axiosClient.js";
-import { useAuth } from '../../context/AuthContext.jsx';
+
+const normalizeCourse = (course) => ({
+    id: course.id ?? course.courseId ?? null,
+    title: course.title ?? course.courseTitle ?? "Untitled course",
+    code: course.courseCode ?? course.code ?? "",
+    instructor: course.professorName ?? course.instructorName ?? "TBA",
+    capacity: course.capacity ?? 0,
+    enrolledCount: course.enrolledStudents?.length ?? 0,
+    startDate: course.startDate ?? null,
+    endDate: course.endDate ?? null,
+});
+
+const getApiMessage = (error, fallback) => (
+    error?.response?.data?.message
+    ?? error?.response?.data?.errors?.[0]
+    ?? fallback
+);
+
+const formatDate = (value) => {
+    if (!value || String(value).startsWith("0001-01-01")) return null;
+    return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" })
+        .format(new Date(value));
+};
 
 export default function StudentRegistrationPage() {
-    const { user } = useAuth();
-
     const [courses, setCourses] = useState([]);
+    const [enrolledCourseIds, setEnrolledCourseIds] = useState(new Set());
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [notif, setNotif] = useState(null); // { type: 'success'|'error', message }
-    const [registering, setRegistering] = useState({}); // map courseId -> boolean
-
-    // Helper: decode JWT to extract numeric sub (user id)
-    const getStudentIdFromToken = () => {
-        const token = user?.token ?? localStorage.getItem('token');
-        if (!token) return null;
-        try {
-            const parts = token.split('.');
-            if (parts.length < 2) return null;
-            const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-            // sub expected to be string id
-            const sub = payload.sub ?? payload.userId ?? payload.id;
-            return sub ? parseInt(sub, 10) : null;
-        } catch (e) {
-            console.error('Failed to decode token', e);
-            return null;
-        }
-    };
+    const [error, setError] = useState("");
+    const [notification, setNotification] = useState(null);
+    const [registering, setRegistering] = useState({});
 
     useEffect(() => {
-        const fetchCourses = async () => {
-            setLoading(true);
-            setError(null);
+        let active = true;
+
+        const loadRegistrationData = async () => {
             try {
-                const res = await axiosClient.get('/CourseFactory');
-                const data = res.data ?? [];
+                const [courseResponse, enrollmentResponse] = await Promise.all([
+                    axiosClient.get("/CourseFactory"),
+                    axiosClient.get("/Student/me/enrollments"),
+                ]);
 
-                const normalized = data.map(c => ({
-                    // accept many possible property names (Id, id, CourseId ...)
-                    id: c.id ?? c.Id ?? c.courseId ?? c.CourseId ?? null,
-                    title: c.title ?? c.Title ?? c.Title ?? c.title ?? c.CourseTitle ?? c.courseTitle ?? '',
-                    code: c.courseCode ?? c.code ?? c.CourseCode ?? c.Code ?? '',
-                    instructor: c.professorName ?? c.instructorName ?? c.instructor ?? 'TBA',
-                    capacity: c.capacity ?? c.Capacity ?? 0,
-                    enrolledStudents: c.enrolledStudents ?? c.EnrolledStudents ?? c.enrolledStudentsList ?? [],
-                    raw: c
-                }));
+                if (!active) return;
 
-                setCourses(normalized);
-            } catch (err) {
-                console.error(err);
-                setError('Failed to load available courses. Please check the network.');
+                const courseList = Array.isArray(courseResponse.data) ? courseResponse.data : [];
+                const enrollmentList = enrollmentResponse.data?.data ?? [];
+                setCourses(courseList.map(normalizeCourse));
+                setEnrolledCourseIds(new Set(enrollmentList.map((item) => item.courseId)));
+            } catch (loadError) {
+                if (active) setError(getApiMessage(loadError, "Failed to load available courses."));
             } finally {
-                setLoading(false);
+                if (active) setLoading(false);
             }
         };
 
-        fetchCourses();
+        loadRegistrationData();
+        return () => { active = false; };
     }, []);
 
-    const isStudentEnrolled = (course) => {
-        return (course.enrolledStudents && course.enrolledStudents.length > 0) &&
-            course.enrolledStudents.some(s => {
-                const sid = getStudentIdFromToken();
-                if (sid && (s.studentId === sid || s.StudentId === sid)) return true;
-                const username = user?.username ?? localStorage.getItem('username');
-                if (!username) return false;
-                return (s.name === username || s.Name === username || s.name === s.Name);
-            });
-    };
-
-    const extractNumericCourseId = (course) => {
-        // Try normalized id first
-        let cid = course.id ?? course.raw?.id ?? course.raw?.Id ?? course.raw?.CourseId ?? course.raw?.courseId ?? null;
-        if (cid === null || cid === undefined) return null;
-        // If it's a string number, convert
-        if (typeof cid === 'string') {
-            const n = parseInt(cid, 10);
-            return Number.isFinite(n) ? n : null;
-        }
-        if (typeof cid === 'number') return cid;
-        return null;
-    };
-
     const handleRegister = async (course) => {
-        setNotif(null);
-        // log full course for debugging
-        console.log('Attempting register for course object:', course);
-
-        const courseIdRaw = extractNumericCourseId(course);
-        console.log('Resolved courseId:', courseIdRaw);
-
-        if (!courseIdRaw) {
-            setNotif({ type: 'error', message: 'Course not found (invalid identifier). Please refresh the page.' });
+        if (!course.id) {
+            setNotification({ type: "error", message: "This course has an invalid identifier." });
             return;
         }
 
-        const studentId = getStudentIdFromToken();
-        if (!studentId) {
-            setNotif({ type: 'error', message: 'Student not identified. Please login again.' });
-            return;
-        }
-
-        setRegistering(prev => ({ ...prev, [courseIdRaw]: true }));
+        setNotification(null);
+        setRegistering((current) => ({ ...current, [course.id]: true }));
 
         try {
-            const url = `/Student/${studentId}/register`;
-            const payload = { CourseId: courseIdRaw };
-            console.log('POST', url, payload);
-
-            const res = await axiosClient.post(url, payload);
-            console.log('Register response:', res);
-
-            const courseName = course.title || course.raw?.title || course.raw?.CourseTitle || course.code;
-            setNotif({ type: 'success', message: `? Successfully registered for ${courseName}!` });
-
-            setCourses(prev => prev.map(c => {
-                const cid = extractNumericCourseId(c) ?? null;
-                if (cid === courseIdRaw) {
-                    const newEnrolled = (c.enrolledStudents || []).concat([{ studentId }]);
-                    return { ...c, enrolledStudents: newEnrolled };
-                }
-                return c;
-            }));
-
-        } catch (err) {
-            console.error('Register failed', err);
-            // show full server response body if available
-            const serverBody = err?.response?.data;
-            console.error('Server response body:', serverBody);
-            let msg = 'Failed to register.';
-            if (serverBody) {
-                // try multiple common fields
-                msg = serverBody.message ?? serverBody.Message ?? serverBody.details ?? JSON.stringify(serverBody);
-            } else if (err.message) {
-                msg = err.message;
-            }
-            setNotif({ type: 'error', message: `? ${msg} (status ${err?.response?.status ?? 'unknown'})` });
+            await axiosClient.post("/Student/me/enrollments", { courseId: course.id });
+            setEnrolledCourseIds((current) => new Set([...current, course.id]));
+            setCourses((current) => current.map((item) => (
+                item.id === course.id ? { ...item, enrolledCount: item.enrolledCount + 1 } : item
+            )));
+            setNotification({ type: "success", message: `Registered for ${course.title}.` });
+        } catch (registerError) {
+            setNotification({
+                type: "error",
+                message: getApiMessage(registerError, "Could not register for this course."),
+            });
         } finally {
-            setRegistering(prev => ({ ...prev, [courseIdRaw]: false }));
+            setRegistering((current) => ({ ...current, [course.id]: false }));
         }
     };
 
-    if (loading) return (
-        <div style={{ padding: 24, color: '#e5e7eb' }}>
-            <div>Loading courses...</div>
-        </div>
-    );
-
-    if (error) return (
-        <div style={{ padding: 24, color: '#ff8080', textAlign: 'center' }}>
-            <div>?? {error}</div>
-        </div>
-    );
+    if (loading) return <div className="profile-state">Loading available courses...</div>;
+    if (error) return <div style={{ padding: 24, color: "#ff8080", textAlign: "center" }}>{error}</div>;
 
     return (
-        <div style={{ color: '#e5e7eb' }}>
-            <h2 style={{ marginTop: 0, marginBottom: 16 }}>Course Registration</h2>
+        <section style={{ color: "#e5e7eb" }}>
+            <div style={{ marginBottom: 18 }}>
+                <h1 style={{ margin: 0, fontSize: "1.8rem" }}>Course Registration</h1>
+                <p style={{ margin: "6px 0 0", color: "#9aa6b2" }}>Choose from the courses with available seats.</p>
+            </div>
 
-            {notif && (
-                <div style={{
-                    marginBottom: 12,
-                    padding: '10px 14px',
-                    borderRadius: 8,
-                    background: notif.type === 'success' ? 'rgba(16,185,129,0.12)' : 'rgba(255,77,77,0.08)',
-                    color: notif.type === 'success' ? '#10b981' : '#ff6b6b'
-                }}>{notif.message}</div>
-            )
+            {notification && (
+                <div
+                    role="status"
+                    style={{
+                        marginBottom: 14,
+                        padding: "10px 14px",
+                        borderRadius: 8,
+                        background: notification.type === "success" ? "rgba(16,185,129,0.12)" : "rgba(255,77,77,0.1)",
+                        color: notification.type === "success" ? "#5ce0ad" : "#ff8b8b",
+                    }}
+                >
+                    {notification.message}
+                </div>
+            )}
 
-            }
             {courses.length === 0 ? (
-                <div style={{ color: '#e5e7eb' }}>No courses available for registration.</div>
+                <div>No courses are currently available.</div>
             ) : (
-                <div style={{ display: 'grid', gap: 12 }}>
-                    {courses.map((course, idx) => {
-                        const enrolled = course.enrolledStudents || [];
-                        const enrolledCount = enrolled.length;
-                        const capacity = course.capacity ?? course.raw?.capacity ?? 0;
-                        const seatsLeftText = capacity > 0 ? `${enrolledCount}/${capacity} enrolled` : `${enrolledCount} enrolled`;
-                        const cid = extractNumericCourseId(course) ?? idx;
-                        const already = isStudentEnrolled(course);
+                <div style={{ display: "grid", gap: 12 }}>
+                    {courses.map((course) => {
+                        const alreadyEnrolled = enrolledCourseIds.has(course.id);
+                        const isFull = course.capacity > 0 && course.enrolledCount >= course.capacity;
+                        const startDate = formatDate(course.startDate);
+                        const endDate = formatDate(course.endDate);
+
                         return (
-                            <div key={cid} style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                padding: 14,
-                                background: '#0f0f10',
-                                borderRadius: 8,
-                                border: '1px solid rgba(255,255,255,0.03)'
-                            }}>
+                            <article
+                                key={course.id}
+                                style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    gap: 18,
+                                    padding: 16,
+                                    background: "#0f0f10",
+                                    borderRadius: 10,
+                                    border: "1px solid rgba(255,255,255,0.06)",
+                                }}
+                            >
                                 <div>
-                                    <div style={{ fontWeight: 700 }}>{course.title} <span style={{ color: '#9aa6b2', fontWeight: 500 }}>({course.code})</span></div>
-                                    <div style={{ color: '#9aa6b2', marginTop: 6 }}>Instructor: {course.instructor}</div>
-                                    <div style={{ color: '#9aa6b2', marginTop: 6 }}>{seatsLeftText}</div>
+                                    <div style={{ fontWeight: 750, fontSize: "1.02rem" }}>
+                                        {course.title} <span style={{ color: "#9aa6b2", fontWeight: 500 }}>({course.code})</span>
+                                    </div>
+                                    <div style={{ color: "#9aa6b2", marginTop: 7 }}>Instructor: {course.instructor}</div>
+                                    <div style={{ color: "#9aa6b2", marginTop: 5 }}>
+                                        {course.enrolledCount}{course.capacity > 0 ? ` / ${course.capacity}` : ""} enrolled
+                                        {startDate && endDate ? ` · ${startDate} – ${endDate}` : ""}
+                                    </div>
                                 </div>
 
-                                <div>
-                                    <button
-                                        onClick={() => handleRegister(course)}
-                                        disabled={already || registering[cid] || (capacity > 0 && enrolledCount >= capacity)}
-                                        style={{
-                                            background: already ? 'transparent' : '#2b6cff',
-                                            color: already ? '#9aa6b2' : 'white',
-                                            border: already ? '1px solid rgba(255,255,255,0.04)' : 'none',
-                                            padding: '0.6rem 0.9rem',
-                                            borderRadius: 8,
-                                            cursor: already ? 'default' : 'pointer'
-                                        }}
-                                    >
-                                        {registering[cid] ? 'Registering...' : (already ? 'Registered' : (capacity > 0 && enrolledCount >= capacity ? 'Full' : 'Register'))}
-                                    </button>
-                                </div>
-                            </div>
+                                <button
+                                    type="button"
+                                    onClick={() => handleRegister(course)}
+                                    disabled={alreadyEnrolled || isFull || registering[course.id]}
+                                    style={{
+                                        minWidth: 105,
+                                        background: alreadyEnrolled ? "transparent" : "#2b6cff",
+                                        color: alreadyEnrolled ? "#9aa6b2" : "white",
+                                        border: alreadyEnrolled ? "1px solid #333" : "none",
+                                        padding: "0.65rem 0.9rem",
+                                        borderRadius: 8,
+                                        cursor: alreadyEnrolled || isFull ? "default" : "pointer",
+                                        fontWeight: 650,
+                                    }}
+                                >
+                                    {registering[course.id] ? "Registering..." : alreadyEnrolled ? "Registered" : isFull ? "Full" : "Register"}
+                                </button>
+                            </article>
                         );
                     })}
                 </div>
             )}
-        </div>
+        </section>
     );
 }
-
-// NOTE: You must also update App.jsx to use this component at the '/student/register' path.

@@ -1,23 +1,17 @@
-﻿namespace University_Self_Service_System___Backend.DTOs.CourseDTOs
+namespace University_Self_Service_System___Backend.DTOs.CourseDTOs
 {
     public class RviewCourseDto
     {
-        // These are the core identification and display fields
         public int Id { get; set; }
-        public string CourseCode { get; set; }   // Maps to Entity.Code
-        public string Title { get; set; }
-
-        // Academic details the user needs to know
+        public string CourseCode { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
         public int CreditHours { get; set; }
-
-        // Details about the related Professor (essential for a course list)
-        // You should *project* the professor's name here, instead of just the ID.
-        public string ProfessorName { get; set; }
-        public bool profDontExist { get; set; } = false;
-
-        // List of enrolled students for admin/student pages
+        public int? ProfessorId { get; set; }
+        public string ProfessorName { get; set; } = "Not Assigned";
+        public bool profDontExist { get; set; }
         public List<StudentInCourseDto> EnrolledStudents { get; set; } = new();
-
         public int Capacity { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
     }
 }

@@ -1,67 +1,91 @@
-﻿// Ensure RCreatedCourseDto includes this property:
-// public bool CourseCodeIsDuplicate { get; set; } = false;
-
-// File: University_Self_Service_System___Backend/Services/CourseFactory/CreateCourseService.cs
-
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using University_Self_Service_System___Backend.Data;
 using University_Self_Service_System___Backend.DTOs.CourseDTOs;
 using University_Self_Service_System___Backend.Entities;
 
 namespace University_Self_Service_System___Backend.Services.CourseFactory
 {
-    public partial class courseServices 
+    public partial class courseServices
     {
         public async Task<RCreatedCourseDto> CreateCourse(CreateCourseDto dto)
         {
-            bool professorWasNotFound = false;
-            string? instructorName = null;
+            var code = dto.Code.Trim();
+            var title = dto.Title.Trim();
 
-            // 1. Check for Duplicate Course Code
-            var courseExists = await _context.Courses.AnyAsync(c => c.Code == dto.Code);
-            if (courseExists)
+            var validationMessage = ValidateCourse(
+                code,
+                title,
+                dto.CreditHours,
+                dto.Capacity,
+                dto.StartDate,
+                dto.EndDate);
+
+            if (validationMessage != null)
             {
-                return new RCreatedCourseDto { CourseCodeIsDuplicate = true };
+                return new RCreatedCourseDto { Message = validationMessage };
             }
 
-            // 2. Validate ProfessorId if provided
-            if (dto.ProfessorId.HasValue && dto.ProfessorId.Value != 0)
+            var normalizedCode = code.ToLower();
+            if (await _context.Courses.AnyAsync(course => course.Code.ToLower() == normalizedCode))
             {
-                var professor = await _context.Professors
-                    .FirstOrDefaultAsync(p => p.Id == dto.ProfessorId.Value);
+                return new RCreatedCourseDto
+                {
+                    CourseCodeIsDuplicate = true,
+                    Message = $"A course with code '{code}' already exists."
+                };
+            }
 
+            Professor? professor = null;
+            if (dto.ProfessorId.HasValue)
+            {
+                professor = await _context.Professors.FindAsync(dto.ProfessorId.Value);
                 if (professor == null)
                 {
-                    professorWasNotFound = true;
-                    dto.ProfessorId = null;
-                }
-                else
-                {
-                    // Derive InstructorName from professor
-                    instructorName = professor.FullName;
+                    return new RCreatedCourseDto
+                    {
+                        ProfessorIdNotFound = true,
+                        Message = "The selected professor no longer exists."
+                    };
                 }
             }
 
-            // 3. Map DTO -> Entity
-            var courseEntity = _mapper.Map<Course>(dto);
+            var course = new Course
+            {
+                Code = code,
+                Title = title,
+                CreditHours = dto.CreditHours,
+                ProfessorId = professor?.Id,
+                InstructorName = professor == null ? null : professor.FullName ?? professor.Name,
+                Capacity = dto.Capacity,
+                StartDate = dto.StartDate.Date,
+                EndDate = dto.EndDate.Date
+            };
 
-            // 4. Set InstructorName (null if no professor assigned)
-            courseEntity.InstructorName = instructorName;
-
-            // 5. Save to Database
-            _context.Courses.Add(courseEntity);
+            _context.Courses.Add(course);
             await _context.SaveChangesAsync();
 
-            // 6. Map Entity -> Result DTO
-            var result = _mapper.Map<RCreatedCourseDto>(courseEntity);
-
-            if (professorWasNotFound)
+            return new RCreatedCourseDto
             {
-                result.ProfessorIdNotFound = true;
-            }
+                Id = course.Id,
+                Success = true,
+                Message = "Course created successfully."
+            };
+        }
 
-            return result;
+        private static string? ValidateCourse(
+            string code,
+            string title,
+            int creditHours,
+            int capacity,
+            DateTime startDate,
+            DateTime endDate)
+        {
+            if (string.IsNullOrWhiteSpace(code)) return "Course code is required.";
+            if (string.IsNullOrWhiteSpace(title)) return "Course title is required.";
+            if (creditHours is < 1 or > 12) return "Credit hours must be between 1 and 12.";
+            if (capacity < 1) return "Capacity must be at least 1.";
+            if (startDate == default || endDate == default) return "Start and end dates are required.";
+            if (endDate.Date < startDate.Date) return "End date must be on or after the start date.";
+            return null;
         }
     }
 }

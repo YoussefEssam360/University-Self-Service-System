@@ -7,20 +7,30 @@ namespace University_Self_Service_System___Backend.Services.ProfManagement
     {
         public async Task<RDeleteProfessorDto> DeleteProfessor(DeleteProfessorDto dto)
         {
-            // 1. Find professor by ID
             var professor = await _context.Professors
+                .Include(item => item.Courses)
+                .Include(item => item.User)
                 .FirstOrDefaultAsync(p => p.Id == dto.Id);
 
             if (professor == null)
             {
-                return new RDeleteProfessorDto { ProfessorNotFound = true };
+                return new RDeleteProfessorDto { ProfessorNotFound = true, Message = "Professor was not found." };
             }
 
-            // 2. Remove professor (courses will have ProfessorId set to NULL automatically)
-            _context.Professors.Remove(professor);
+            if (professor.Courses.Count > 0)
+            {
+                return new RDeleteProfessorDto
+                {
+                    HasAssignedCourses = true,
+                    CourseCount = professor.Courses.Count,
+                    Message = "Reassign this professor's courses before deleting the account."
+                };
+            }
+
+            _context.Users.Remove(professor.User);
             await _context.SaveChangesAsync();
 
-            return new RDeleteProfessorDto { Success = true };
+            return new RDeleteProfessorDto { Success = true, Message = "Professor account deleted." };
         }
     }
 }

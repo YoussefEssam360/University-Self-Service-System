@@ -8,6 +8,7 @@ namespace University_Self_Service_System___Backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class CourseFactoryController : ControllerBase
     {
         private readonly ICourseService _courseService;
@@ -22,7 +23,7 @@ namespace University_Self_Service_System___Backend.Controllers
         public async Task<IActionResult> CreateCourse([FromBody] CreateCourseDto dto)
         {
             var result = await _courseService.CreateCourse(dto);
-            return Ok(result);
+            return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpDelete]
@@ -44,11 +45,8 @@ namespace University_Self_Service_System___Backend.Controllers
         {
             var result = await _courseService.updateCourse(dto);
 
-            if (!result.done)
-            {
-                // Course not found or invalid input
-                return NotFound(result);
-            }
+            if (result.CourseNotFound) return NotFound(result);
+            if (!result.done) return BadRequest(result);
 
             return Ok(result);
         }

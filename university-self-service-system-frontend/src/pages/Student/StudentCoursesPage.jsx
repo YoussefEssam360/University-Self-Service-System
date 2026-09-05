@@ -1,84 +1,154 @@
-import { useState, useEffect } from 'react';
-import axiosClient from '../../api/axiosClient.js';
-import { useAuth } from '../../context/AuthContext.jsx';
+import { useEffect, useState } from "react";
+import axiosClient from "../../api/axiosClient.js";
+
+const normalizeEnrollment = (enrollment) => ({
+    enrollmentId: enrollment.enrollmentId,
+    courseId: enrollment.courseId,
+    title: enrollment.courseTitle ?? "Untitled course",
+    code: enrollment.courseCode ?? "",
+    instructor: enrollment.instructorName ?? "TBA",
+    startDate: enrollment.startDate ?? null,
+    endDate: enrollment.endDate ?? null,
+});
+
+const getApiMessage = (error, fallback) => (
+    error?.response?.data?.message
+    ?? error?.response?.data?.errors?.[0]
+    ?? fallback
+);
+
+const formatDate = (value) => {
+    if (!value || String(value).startsWith("0001-01-01")) return null;
+    return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" })
+        .format(new Date(value));
+};
 
 export default function StudentCoursesPage() {
-    const { user } = useAuth();
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-
-    const getStudentIdFromToken = () => {
-        const token = user?.token ?? localStorage.getItem('token');
-        if (!token) return null;
-        try {
-            const parts = token.split('.');
-            if (parts.length < 2) return null;
-            const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-            const sub = payload.sub ?? payload.userId ?? payload.id;
-            return sub ? parseInt(sub, 10) : null;
-        } catch (e) {
-            console.error('Failed to decode token', e);
-            return null;
-        }
-    };
+    const [error, setError] = useState("");
+    const [notification, setNotification] = useState(null);
+    const [dropping, setDropping] = useState({});
 
     useEffect(() => {
-        const load = async () => {
-            setLoading(true);
-            setError(null);
-            const studentId = getStudentIdFromToken();
-            if (!studentId) {
-                setError('Student not identified. Please login again.');
-                setLoading(false);
-                return;
-            }
+        let active = true;
 
+        const loadCourses = async () => {
             try {
-                const res = await axiosClient.get(`/Student/${studentId}/enrollments`);
-                const payload = res.data?.data ?? res.data?.Data ?? res.data ?? [];
-                const list = Array.isArray(payload) ? payload : (payload?.Data ?? payload);
-                const normalized = (Array.isArray(payload) ? payload : (Array.isArray(list) ? list : [])).map(c => ({
-                    enrollmentId: c.enrollmentId ?? c.EnrollmentId ?? c.enrollmentID ?? c.enrollmentId,
-                    courseId: c.courseId ?? c.CourseId ?? c.courseID ?? c.CourseID ?? c.courseId,
-                    title: c.courseTitle ?? c.CourseTitle ?? c.title ?? c.Title ?? 'Untitled',
-                    code: c.courseCode ?? c.CourseCode ?? c.code ?? c.Code ?? '',
-                    instructor: c.instructorName ?? c.InstructorName ?? c.instructor ?? 'TBA',
-                    // keep dates in data model but do not display them in UI
-                    startDate: c.startDate ?? c.StartDate ?? null,
-                    endDate: c.endDate ?? c.EndDate ?? null
-                }));
-
-                setCourses(normalized);
-            } catch (err) {
-                console.error(err);
-                setError('Failed to load enrolled courses.');
+                const response = await axiosClient.get("/Student/me/enrollments");
+                const enrollments = response.data?.data ?? [];
+                if (active) setCourses(enrollments.map(normalizeEnrollment));
+            } catch (loadError) {
+                if (active) setError(getApiMessage(loadError, "Failed to load enrolled courses."));
             } finally {
-                setLoading(false);
+                if (active) setLoading(false);
             }
         };
 
-        load();
-    }, [user]);
+        loadCourses();
+        return () => { active = false; };
+    }, []);
 
-    if (loading) return <div style={{ padding: 24, color: '#e5e7eb' }}>Loading enrolled courses...</div>;
-    if (error) return <div style={{ padding: 24, color: '#ff8080' }}>{error}</div>;
+    const dropCourse = async (course) => {
+        if (!window.confirm(`Drop ${course.title}? You will need to register again if you change your mind.`)) return;
 
-    if (!courses || courses.length === 0) {
-        return <div style={{ padding: 24, color: '#e5e7eb' }}>No current enrolled courses.</div>;
-    }
+        setNotification(null);
+        setDropping((current) => ({ ...current, [course.enrollmentId]: true }));
+
+        try {
+            await axiosClient.delete(`/Student/me/enrollments/${course.enrollmentId}`);
+            setCourses((current) => current.filter((item) => item.enrollmentId !== course.enrollmentId));
+            setNotification({ type: "success", message: `${course.title} was dropped.` });
+        } catch (dropError) {
+            setNotification({
+                type: "error",
+                message: getApiMessage(dropError, "Could not drop this course."),
+            });
+        } finally {
+            setDropping((current) => ({ ...current, [course.enrollmentId]: false }));
+        }
+    };
+
+    if (loading) return <div className="profile-state">Loading enrolled courses...</div>;
+    if (error) return <div style={{ padding: 24, color: "#ff8080" }}>{error}</div>;
 
     return (
-        <div style={{ padding: 24 }}>
-            <h2 style={{ color: '#e5e7eb', marginTop: 0 }}>My Courses</h2>
-            <div style={{ display: 'grid', gap: 12 }}>
-                {courses.map(c => (
-                    <div key={c.enrollmentId ?? c.courseId} style={{ background: '#0f0f10', padding: 14, borderRadius: 8, border: '1px solid rgba(255,255,255,0.03)', color: '#e5e7eb' }}>
-                        <div style={{ fontWeight: 700 }}>{c.title} <span style={{ color: '#9aa6b2', fontWeight: 500 }}>({c.code})</span></div>
-                        <div style={{ color: '#9aa6b2', marginTop: 6 }}>Instructor: {c.instructor}</div>
-                    </div>
-                ))}
+        <section style={{ color: "#e5e7eb" }}>
+            <div style={{ marginBottom: 18 }}>
+                <h1 style={{ margin: 0, fontSize: "1.8rem" }}>My Courses</h1>
+                <p style={{ margin: "6px 0 0", color: "#9aa6b2" }}>Review your current enrollments or drop a course.</p>
             </div>
-        </div>
+
+            {notification && (
+                <div
+                    role="status"
+                    style={{
+                        marginBottom: 14,
+                        padding: "10px 14px",
+                        borderRadius: 8,
+                        background: notification.type === "success" ? "rgba(16,185,129,0.12)" : "rgba(255,77,77,0.1)",
+                        color: notification.type === "success" ? "#5ce0ad" : "#ff8b8b",
+                    }}
+                >
+                    {notification.message}
+                </div>
+            )}
+
+            {courses.length === 0 ? (
+                <div style={{ padding: 24, background: "#0f0f10", borderRadius: 10, border: "1px solid rgba(255,255,255,0.06)" }}>
+                    You are not currently enrolled in any courses.
+                </div>
+            ) : (
+                <div style={{ display: "grid", gap: 12 }}>
+                    {courses.map((course) => {
+                        const startDate = formatDate(course.startDate);
+                        const endDate = formatDate(course.endDate);
+
+                        return (
+                            <article
+                                key={course.enrollmentId}
+                                style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    gap: 18,
+                                    padding: 16,
+                                    background: "#0f0f10",
+                                    borderRadius: 10,
+                                    border: "1px solid rgba(255,255,255,0.06)",
+                                }}
+                            >
+                                <div>
+                                    <div style={{ fontWeight: 750, fontSize: "1.02rem" }}>
+                                        {course.title} <span style={{ color: "#9aa6b2", fontWeight: 500 }}>({course.code})</span>
+                                    </div>
+                                    <div style={{ color: "#9aa6b2", marginTop: 7 }}>Instructor: {course.instructor}</div>
+                                    {startDate && endDate && (
+                                        <div style={{ color: "#9aa6b2", marginTop: 5 }}>{startDate} – {endDate}</div>
+                                    )}
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => dropCourse(course)}
+                                    disabled={dropping[course.enrollmentId]}
+                                    style={{
+                                        color: "#ff8585",
+                                        background: "rgba(255,77,77,0.06)",
+                                        border: "1px solid rgba(255,77,77,0.35)",
+                                        padding: "0.62rem 0.9rem",
+                                        borderRadius: 8,
+                                        cursor: "pointer",
+                                        fontWeight: 650,
+                                    }}
+                                >
+                                    {dropping[course.enrollmentId] ? "Dropping..." : "Drop course"}
+                                </button>
+                            </article>
+                        );
+                    })}
+                </div>
+            )}
+        </section>
     );
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using University_Self_Service_System___Backend.DTOs.AuthDTOs;
 using University_Self_Service_System___Backend.Services.AuthServices;
 
@@ -6,6 +7,7 @@ namespace University_Self_Service_System___Backend.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [AllowAnonymous]
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;

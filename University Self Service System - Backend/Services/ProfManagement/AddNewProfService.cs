@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using University_Self_Service_System___Backend.DTOs.AuthDTOs;
 using University_Self_Service_System___Backend.DTOs.ProfessorDTOs;
-using University_Self_Service_System___Backend.Entities;
 
 namespace University_Self_Service_System___Backend.Services.ProfManagement
 {
@@ -8,27 +8,42 @@ namespace University_Self_Service_System___Backend.Services.ProfManagement
     {
         public async Task<RCreatedProfessorDto> CreateProfessor(CreateProfessorDto dto)
         {
-            // 1. Check for Duplicate Email
-            var emailExists = await _context.Professors
-                .AnyAsync(p => p.Email == dto.Email);
-
-            if (emailExists)
+            var registration = await _authService.RegisterAsync(new RegisterDto
             {
-                return new RCreatedProfessorDto { EmailIsDuplicate = true };
+                Username = dto.Username.Trim(),
+                FullName = dto.FullName.Trim(),
+                Email = dto.Email.Trim(),
+                Password = dto.Password,
+                Role = "Professor",
+                PhoneNumber = dto.PhoneNumber.Trim(),
+                Department = dto.Department.Trim()
+            });
+
+            if (!registration.Success)
+            {
+                var message = registration.Errors?.FirstOrDefault() ?? "Professor account could not be created.";
+                return new RCreatedProfessorDto
+                {
+                    EmailIsDuplicate = message.Contains("email", StringComparison.OrdinalIgnoreCase),
+                    Message = message
+                };
             }
 
-            // 2. Map DTO to Entity
-            var professorEntity = _mapper.Map<Professor>(dto);
+            var professor = await _context.Professors
+                .Include(item => item.User)
+                .SingleAsync(item => item.User.Username == dto.Username.Trim());
 
-            // 3. Save to Database
-            _context.Professors.Add(professorEntity);
-            await _context.SaveChangesAsync();
-
-            // 4. Map Entity to Response DTO
-            var result = _mapper.Map<RCreatedProfessorDto>(professorEntity);
-            result.Success = true;
-
-            return result;
+            return new RCreatedProfessorDto
+            {
+                Id = professor.Id,
+                Username = professor.User.Username,
+                FullName = professor.FullName,
+                Email = professor.Email,
+                PhoneNumber = professor.PhoneNumber,
+                Department = professor.Department,
+                Success = true,
+                Message = "Professor account created."
+            };
         }
     }
 }

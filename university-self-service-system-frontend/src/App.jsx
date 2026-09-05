@@ -6,12 +6,13 @@ import { useAuth } from "./context/AuthContext.jsx";
 import Login from "./pages/Login.jsx";
 import AdminDashboard from "./pages/AdminDashboard.jsx";
 import AdminCoursesPage from "./pages/AdminCoursesPage.jsx";
-import CreateCoursePage from "./pages/CreateCoursePage.jsx";
+import AdminProfessorsPage from "./pages/AdminProfessorsPage.jsx";
 
 // ⭐️ Import Student Components (based on your structure src/pages/Student/) ⭐️
 import StudentLayout from "./pages/Student/StudentLayout";
 import StudentRegistrationPage from "./pages/Student/StudentRegistrationPage";
 import StudentCoursesPage from "./pages/Student/StudentCoursesPage";
+import StudentProfilePage from "./pages/Student/StudentProfilePage";
 
 function App() {
     // ⭐️ Updated: Get all necessary auth states ⭐️
@@ -60,6 +61,8 @@ function App() {
                 {/* My courses page: Matches /student/courses */}
                 <Route path="courses" element={<StudentCoursesPage />} />
 
+                <Route path="profile" element={<StudentProfilePage />} />
+
             </Route>
 
 
@@ -75,8 +78,8 @@ function App() {
             />
 
             <Route
-                path="/admin/courses/new"
-                element={isAdmin ? <CreateCoursePage /> : <Navigate to="/login" />}
+                path="/admin/professors"
+                element={isAdmin ? <AdminProfessorsPage /> : <Navigate to="/login" />}
             />
 
             {/* Default fall-back: Redirects to the appropriate page or login */}

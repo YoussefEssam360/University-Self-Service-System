@@ -5,19 +5,24 @@ namespace University_Self_Service_System___Backend.DTOs.StudentDTOs
 {
     public class StudentUpdateDto
     {
-        [StringLength(200)]
+        [Required]
+        [StringLength(200, MinimumLength = 2)]
         public string? FullName { get; set; }
 
+        [Required]
         [EmailAddress]
         public string? Email { get; set; }
 
+        [Required]
         [Phone]
         [StringLength(50)]
         public string? PhoneNumber { get; set; }
 
+        [Required]
         public DateTime? DateOfBirth { get; set; }
 
-        [StringLength(100)]
+        [Required]
+        [StringLength(100, MinimumLength = 2)]
         public string? Major { get; set; }
     }
 }

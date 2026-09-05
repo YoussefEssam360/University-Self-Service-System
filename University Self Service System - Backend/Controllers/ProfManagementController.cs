@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using University_Self_Service_System___Backend.DTOs.ProfessorDTOs;
@@ -7,6 +8,7 @@ namespace University_Self_Service_System___Backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "Admin")]
     public class ProfManagementController : ControllerBase
     {
         private readonly IProfManagementService _profManagementService;
@@ -20,14 +22,17 @@ namespace University_Self_Service_System___Backend.Controllers
         public async Task<IActionResult> CreateProfessor([FromBody] CreateProfessorDto dto)
         {
             var result = await _profManagementService.CreateProfessor(dto);
-            return Ok(result);
+            return result.Success
+                ? CreatedAtAction(nameof(ViewProfessorById), new { id = result.Id }, result)
+                : BadRequest(result);
         }
 
         [HttpPut]
         public async Task<IActionResult> UpdateProfessor([FromBody] UpdateProfessorDto dto)
         {
             var result = await _profManagementService.UpdateProfessor(dto);
-            return Ok(result);
+            if (result.ProfessorNotFound) return NotFound(result);
+            return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpGet]
@@ -41,14 +46,15 @@ namespace University_Self_Service_System___Backend.Controllers
         public async Task<IActionResult> ViewProfessorById(int id)
         {
             var result = await _profManagementService.ViewProfessorById(id);
-            return Ok(result);
+            return result.ProfessorNotFound ? NotFound(result) : Ok(result);
         }
 
         [HttpDelete]
         public async Task<IActionResult> DeleteProfessor([FromBody] DeleteProfessorDto dto)
         {
             var result = await _profManagementService.DeleteProfessor(dto);
-            return Ok(result);
+            if (result.ProfessorNotFound) return NotFound(result);
+            return result.Success ? Ok(result) : BadRequest(result);
         }
     }
 }

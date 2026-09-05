@@ -20,6 +20,7 @@ export default function AdminCoursesPage() {
 
     const loadCourses = async () => {
         setLoading(true);
+        setError("");
         try {
             const res = await axiosClient.get("/CourseFactory");
             setCourses(res.data ?? []);
@@ -60,6 +61,12 @@ export default function AdminCoursesPage() {
         setCourses((prev) => prev.map((c) => (getId(c) === courseCode ? { ...c, expanded: !c.expanded } : c)));
     };
 
+    const formatDate = (value) => {
+        if (!value || String(value).startsWith("0001-01-01")) return "Not set";
+        return new Intl.DateTimeFormat(undefined, { year: "numeric", month: "short", day: "numeric" })
+            .format(new Date(value));
+    };
+
     // ===== STYLES =====
     const pageStyle = {
         position: "fixed",
@@ -76,7 +83,7 @@ export default function AdminCoursesPage() {
 
     const cardStyle = {
         width: "100%",
-        maxWidth: 1100,
+        maxWidth: 1250,
         background: "#0f0f10",
         borderRadius: 12,
         padding: "2rem",
@@ -134,6 +141,7 @@ export default function AdminCoursesPage() {
         width: "100%",
         borderCollapse: "collapse",
         marginTop: 12,
+        minWidth: 980,
     };
 
     const thStyle = {
@@ -186,33 +194,48 @@ export default function AdminCoursesPage() {
                     <button onClick={openCreate} style={primaryButton}>+ Create New Course</button>
                 </div>
 
+                <div style={{ overflowX: "auto" }}>
                 <table style={tableStyle}>
                     <thead>
                         <tr>
-                            <th style={thStyle}>Title</th>
-                            <th style={thStyle}>Code</th>
-                            <th style={thStyle}>Credit Hours</th>
+                            <th style={thStyle}>Course</th>
+                            <th style={thStyle}>Credits</th>
                             <th style={thStyle}>Professor</th>
+                            <th style={thStyle}>Schedule</th>
+                            <th style={thStyle}>Seats</th>
                             <th style={thStyle}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {courses.length === 0 && (
                             <tr>
-                                <td colSpan={5} style={{ ...tdStyle, textAlign: "center", color: "#888" }}>
+                                <td colSpan={6} style={{ ...tdStyle, textAlign: "center", color: "#888" }}>
                                     No courses found. Create one to get started.
                                 </td>
                             </tr>
                         )}
                         {courses.map((c) => {
                             const cid = getId(c);
+                            const enrolledCount = c.enrolledStudents?.length ?? 0;
                             return (
-                                <React.Fragment key={cid ?? Math.random()}>
+                                <React.Fragment key={c.id ?? cid}>
                                     <tr>
-                                        <td style={tdStyle}>{c.title}</td>
-                                        <td style={tdStyle}>{c.courseCode ?? c.code}</td>
+                                        <td style={tdStyle}>
+                                            <div style={{ fontWeight: 700 }}>{c.title}</div>
+                                            <div style={{ color: "#888", fontSize: 13, marginTop: 3 }}>{c.courseCode ?? c.code}</div>
+                                        </td>
                                         <td style={tdStyle}>{c.creditHours}</td>
                                         <td style={tdStyle}>{c.professorName ?? "Not Assigned"}</td>
+                                        <td style={tdStyle}>
+                                            <div>{formatDate(c.startDate)}</div>
+                                            <div style={{ color: "#888", fontSize: 13, marginTop: 3 }}>to {formatDate(c.endDate)}</div>
+                                        </td>
+                                        <td style={tdStyle}>
+                                            <div>{enrolledCount} / {c.capacity || "—"}</div>
+                                            <div style={{ color: "#888", fontSize: 13, marginTop: 3 }}>
+                                                {c.capacity > 0 ? `${Math.max(c.capacity - enrolledCount, 0)} available` : "Capacity not set"}
+                                            </div>
+                                        </td>
                                         <td style={tdStyle}>
                                             <button onClick={() => openEdit(c)} style={{ ...neutralButton, marginRight: 8 }}>Edit</button>
                                             <button onClick={() => handleDelete(cid)} style={{ ...deleteButton, marginRight: 8 }}>Delete</button>
@@ -224,7 +247,7 @@ export default function AdminCoursesPage() {
 
                                     {c.expanded && (
                                         <tr>
-                                            <td colSpan={5} style={expandedRowStyle}>
+                                            <td colSpan={6} style={expandedRowStyle}>
                                                 <strong>Enrolled Students</strong>
                                                 {(!c.enrolledStudents || c.enrolledStudents.length === 0) ? (
                                                     <div style={{ paddingTop: 8, color: "#888" }}>No students enrolled.</div>
@@ -245,6 +268,7 @@ export default function AdminCoursesPage() {
                         })}
                     </tbody>
                 </table>
+                </div>
             </div>
 
             <CourseModal
